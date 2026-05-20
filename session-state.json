@@ -1,0 +1,72 @@
+{
+  "project": "Universal Signature-First Transcription (TurboTranscribe)",
+  "last_updated": "2026-05-20T00:00:00Z",
+  "requirements": [
+    "Zero-Setup installation (Automated build/config)",
+    "Decoupled Architecture (UI Isolate separated from Service Isolate via IPC)",
+    "OS-Agnostic Audio Capture (Strategy Pattern for Windows Loopback / Android Mic)",
+    "Real-time Intelligence (Silero VAD + Meta MMS-LID Routing)",
+    "Local-First English Transcription (Vosk/Whisper local)",
+    "Vigya Cloud Routing (Indic languages packetized as canonical WAV)",
+    "Persistent Diarization (SQLite with future Vector support)",
+    "Enterprise UI (Live scroll, dynamic tagging, multi-format export)",
+    "Isolate-Aware Logging (Winston-style console + rotating files)",
+    "Android Space Management (Toggleable file logging for mobile)",
+    "Multi-target CI/CD Pipelines (Windows .exe, Android .apk)"
+  ],
+  "decisions_taken": [
+    "Discard Node.js/FFmpeg backend in favor of native Flutter/Dart architecture",
+    "Adopt Decoupled IPC Model: UI and Audio Engine communicate via Local WebSocket",
+    "Use Strategy Pattern for platform-specific audio capture implementations",
+    "Use ONNX Runtime for universal cross-platform AI execution (VAD, LID)",
+    "Standardize on Meta's MMS-LID for instantaneous language routing",
+    "Use SQLite for local persistence instead of flat JSON files",
+    "Adopt Interface-Driven design (VigyanTranscriptionService) for plug-and-play components"
+  ],
+  "locked_stack": {
+    "language": "Dart / Flutter",
+    "transcription": "ONNX Runtime (Silero VAD, Meta MMS-LID) + Local/Cloud Routing",
+    "persistence": "SQLite (DatabaseRepository interface)",
+    "ipc": "Local WebSocket / HTTP (UI <-> Background Isolate)",
+    "audio_capture": "Windows (FFI/WASAPI - PRIMARY PRIORITY) / Android (Platform Channels/AudioRecord)"
+  },
+  "implementation_roadmap": [
+    "Phase 0: Windows C++ Environment Verification (Next - Verify VC++ Desktop Tools)",
+    "Phase 1: Engine Isolation & Data Modeling (Interfaces + SQLite + IPC Server)",
+    "Phase 2: Windows Implementation (WASAPI Strategy + UI Export Logic)",
+    "Phase 3: AI Intelligence Pipeline (VAD Gatekeeper + MMS-LID Router)",
+    "Phase 4: Multi-OS Expansion (Android, macOS, Linux, Web)"
+  ],
+  "dev_lifecycle": {
+    "dev_done": [
+      "PoC: Documented the feasibility of Node.js/Vosk (Archived)",
+      "PoC: Validated WASAPI loopback capture requirements",
+      "Architecture: Completed HLD/LLD diagrams for Flutter pivot",
+      "Cleanup: Purged all legacy Node.js/JS artifacts"
+    ],
+    "dev_in_progress": [
+      "Phase 0: Environment Validation (Awaiting logout/login for VC++ tools)",
+      "Phase 1: Project Scaffolding"
+    ],
+    "test_status": {
+      "test_done": [
+        "Architecture Approved: Decoupled IPC + Strategy Pattern confirmed by Senior Architect"
+      ],
+      "test_issues_identified": [
+        "Native Challenge: Custom C++ FFI required for Windows Loopback (No existing plugin)",
+        "Mobile Constraint: Android MediaProjection required for internal audio capture",
+        "Toolchain: Must verify availability of 'MSVC' and 'C++ Desktop Workload' for FFI compilation"
+      ]
+    }
+  },
+  "architecture": {
+    "model": "Flutter Object-Oriented Decoupled Isolate",
+    "layers": [
+      "Frontend UI Isolate: Consumes streams via generic VigyanTranscriptionService interface",
+      "IPC Boundary: Local WebSocket/HTTP separating UI from heavy audio processing",
+      "Background Audio Engine (OS_ISOLATE): Manages capture, chunking, and routing",
+      "Strategy Layer: OS-specific capture implementations (Windows Loopback vs Android Mic)",
+      "Plugin Component Layer: Hot-swappable ONNX models (Silero VAD, Meta MMS-LID)"
+    ]
+  }
+}
