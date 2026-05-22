@@ -1,6 +1,6 @@
 {
   "project": "Universal Signature-First Transcription (VigyanTranscribe)",
-  "last_updated": "2026-05-23T14:45:00Z",
+  "last_updated": "2026-05-23T16:10:00Z",
   "agent_action_log": [
     {
       "timestamp_utc": "2026-05-22T10:34:00Z",
@@ -193,6 +193,12 @@
       "agent": "codex",
       "phase": "documentation",
       "action": "Added mandatory documentation-discipline and cross-platform testing policy in AGENTS.md, created FLUTTER_TESTING.md canonical runbook, and updated FLUTTER_ARCHITECTURE.md with cross-platform testing architecture section."
+    },
+    {
+      "timestamp_utc": "2026-05-23T16:10:00Z",
+      "agent": "codex",
+      "phase": "scope",
+      "action": "MVP lock for next session: Windows build must transcribe English only, and UX flow must operate seamlessly with minimal-friction user experience."
     }
   ],
   "biography_of_the_12_hour_build": {
