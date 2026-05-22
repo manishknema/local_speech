@@ -1,0 +1,31 @@
+{
+  "version": "2026-05-23",
+  "root": "test_fixtures",
+  "directories": {
+    "raw_download_dir": "test_fixtures/raw",
+    "canonical_wav_dir": "test_fixtures/wav16k",
+    "manifest_dir": "test_fixtures"
+  },
+  "files": {
+    "source_config": "test_fixtures/sources.json",
+    "fixtures_manifest": "test_fixtures/fixtures_manifest.json",
+    "runtime_paths_override": "test_fixtures/paths.local.json"
+  },
+  "path_contract": {
+    "raw_audio_glob": "test_fixtures/raw/*.m4a",
+    "canonical_audio_glob": "test_fixtures/wav16k/*.wav",
+    "required_canonical_files": [
+      "en_clean.wav",
+      "hi_clean.wav",
+      "code_switch_en_hi.wav",
+      "noise_fan.wav",
+      "music_bg.wav",
+      "silence.wav"
+    ]
+  },
+  "notes": [
+    "Copy this file to paths.local.json to override locations for CI runners if needed.",
+    "Tests should read this contract first before fixture discovery."
+  ]
+}
+

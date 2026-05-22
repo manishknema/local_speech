@@ -1,0 +1,30 @@
+{
+  "version": "2026-05-23",
+  "models": [
+    {
+      "name": "VAD Engine",
+      "file_name": "silero_vad.onnx",
+      "url": "https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx",
+      "sha256": ""
+    },
+    {
+      "name": "LID Engine",
+      "file_name": "mms_lid.onnx",
+      "url": "https://huggingface.co/Xenova/mms-lid-126/resolve/main/onnx/model_quantized.onnx",
+      "sha256": ""
+    },
+    {
+      "name": "Speaker Embedder",
+      "file_name": "speaker_embed.onnx",
+      "url": "https://huggingface.co/onnx-community/wespeaker-voxceleb-resnet34-LM/resolve/main/onnx/model.onnx",
+      "sha256": ""
+    },
+    {
+      "name": "Whisper STT",
+      "file_name": "whisper_tiny_en.onnx",
+      "url": "https://huggingface.co/onnx-community/whisper-tiny.en/resolve/main/onnx/model_quantized.onnx",
+      "sha256": ""
+    }
+  ]
+}
+

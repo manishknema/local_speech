@@ -1,9 +1,9 @@
-# TurboTranscribe (Universal Transcription)
+# VigyanTranscribe (Universal Transcription)
 
 An enterprise-grade, modular, and cross-platform meeting transcription system built with **Flutter**, **Dart FFI**, and **ONNX Runtime**.
 
 ## 🚀 The Vision
-TurboTranscribe provides 100% discreet, perfectly synchronized, multi-language transcription using OS-level loopback (Windows) and MediaProjection (Android). It identifies speakers by their mathematical voice signature and routes audio intelligently between local English models and high-fidelity Indic models on the Vigya Cloud.
+VigyanTranscribe provides 100% discreet, perfectly synchronized, multi-language transcription using OS-level loopback (Windows) and MediaProjection (Android). It identifies speakers by their mathematical voice signature and routes audio intelligently between local English models and high-fidelity Indic models on the Vigya Cloud.
 
 ## 🏗️ Architecture
 The system uses a **Decoupled IPC Model**:

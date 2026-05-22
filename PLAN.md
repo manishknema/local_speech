@@ -1,4 +1,4 @@
-# Implementation Plan: TurboTranscribe (Flutter Rebuild)
+# Implementation Plan: VigyanTranscribe (Flutter Rebuild)
 
 This document serves as the active execution ledger for the Flutter-based decoupled IPC architecture.
 

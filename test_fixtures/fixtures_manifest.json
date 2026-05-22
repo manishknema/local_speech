@@ -1,0 +1,76 @@
+{
+  "version": "2026-05-23",
+  "format": {
+    "sample_rate_hz": 16000,
+    "channels": 1,
+    "encoding": "pcm_s16le",
+    "duration_seconds": 20
+  },
+  "fixtures": [
+    {
+      "id": "en_clean",
+      "path": "test_fixtures/wav16k/en_clean.wav",
+      "category": "speech_en",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "eng"
+      },
+      "source_hint": "youtube:ce5qg_rDyRo"
+    },
+    {
+      "id": "hi_clean",
+      "path": "test_fixtures/wav16k/hi_clean.wav",
+      "category": "speech_hi",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "hin"
+      },
+      "source_hint": "youtube:oaBV9BSvv98"
+    },
+    {
+      "id": "code_switch_en_hi",
+      "path": "test_fixtures/wav16k/code_switch_en_hi.wav",
+      "category": "speech_codeswitch",
+      "expected": {
+        "vad": "speech_present",
+        "lid_allowed": [
+          "eng",
+          "hin"
+        ]
+      },
+      "source_hint": "youtube:7uRyqg2NT-k"
+    },
+    {
+      "id": "noise_fan",
+      "path": "test_fixtures/wav16k/noise_fan.wav",
+      "category": "noise",
+      "expected": {
+        "vad": "mostly_non_speech"
+      },
+      "source_hint": "youtube:C5Gm8UvxKlU"
+    },
+    {
+      "id": "music_bg",
+      "path": "test_fixtures/wav16k/music_bg.wav",
+      "category": "music",
+      "expected": {
+        "vad": "non_speech_or_low_confidence_speech"
+      },
+      "source_hint": "youtube:<downloaded via ytsearch query background instrumental music>"
+    },
+    {
+      "id": "silence",
+      "path": "test_fixtures/wav16k/silence.wav",
+      "category": "silence",
+      "expected": {
+        "vad": "non_speech"
+      },
+      "source_hint": "synthetic_ffmpeg_anullsrc"
+    }
+  ],
+  "notes": [
+    "These fixtures are starter baselines; tighten expected labels after first model run.",
+    "Keep tests tolerant for code-switch and noisy clips via allowed-set assertions."
+  ]
+}
+
