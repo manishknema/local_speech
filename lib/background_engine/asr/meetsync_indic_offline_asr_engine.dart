@@ -30,8 +30,16 @@ class MeetsyncIndicOfflineAsrEngine implements AsrEngine {
   @override
   Future<void> loadModel() async {
     _modelDir = _resolveModelDir();
+
+    final modelPath = '$_modelDir/$_modelFileName';
+    final tokensPath = '$_modelDir/$_tokensFileName';
+    // ignore: avoid_print — this engine runs in the background isolate, use print for now
+    print('[MeetsyncOfflineASR] modelPath  = $modelPath  [${File(modelPath).existsSync() ? "EXISTS" : "MISSING"}]');
+    print('[MeetsyncOfflineASR] tokensPath = $tokensPath  [${File(tokensPath).existsSync() ? "EXISTS" : "MISSING"}]');
+
     if (Platform.isWindows) {
       final runtimeDir = SherpaRuntimeLocator.locateWindowsRuntimeDir();
+      print('[MeetsyncOfflineASR] runtimeDir = $runtimeDir');
       if (runtimeDir == null) {
         throw Exception('Vendored Sherpa runtime not found under assets/runtime/sherpa/windows');
       }

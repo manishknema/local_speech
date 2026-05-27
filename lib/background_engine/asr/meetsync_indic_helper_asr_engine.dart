@@ -38,15 +38,31 @@ class MeetsyncIndicHelperAsrEngine implements AsrEngine {
       }
     }
 
+    final modelPath = '$_modelDir/$_modelFileName';
+    final tokensPath = '$_modelDir/$_tokensFileName';
+    final modelExists = File(modelPath).existsSync();
+    final tokensExists = File(tokensPath).existsSync();
+
     BackendFileLogger.instance.log(
-      'Initializing meetsync helper ASR with runtimeDir=$_runtimeDir modelDir=$_modelDir',
+      'Meetsync helper ASR init:\n'
+      '  runtimeDir = $_runtimeDir\n'
+      '  modelPath  = $modelPath  [${modelExists ? "EXISTS" : "MISSING"}]\n'
+      '  tokensPath = $tokensPath  [${tokensExists ? "EXISTS" : "MISSING"}]',
     );
+
+    if (!modelExists) {
+      throw Exception('IndicConformer model not found: $modelPath');
+    }
+    if (!tokensExists) {
+      throw Exception('IndicConformer tokens not found: $tokensPath');
+    }
+
     await _client.start(
       runtimeDir: _runtimeDir,
-      modelPath: '$_modelDir/$_modelFileName',
-      tokensPath: '$_modelDir/$_tokensFileName',
+      modelPath: modelPath,
+      tokensPath: tokensPath,
     );
-    BackendFileLogger.instance.log('Meetsync helper ASR initialized');
+    BackendFileLogger.instance.log('Meetsync helper ASR initialized (subprocess ready)');
   }
 
   @override

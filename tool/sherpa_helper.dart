@@ -19,12 +19,29 @@ Future<void> main(List<String> args) async {
   final modelPath = args[1];
   final tokensPath = args[2];
 
+  stderr.writeln('[sherpa-helper] runtimeDir = $runtimeDir');
+  stderr.writeln('[sherpa-helper] modelPath  = $modelPath  [${File(modelPath).existsSync() ? "EXISTS" : "MISSING"}]');
+  stderr.writeln('[sherpa-helper] tokensPath = $tokensPath  [${File(tokensPath).existsSync() ? "EXISTS" : "MISSING"}]');
+
+  if (!File(modelPath).existsSync()) {
+    stderr.writeln('[sherpa-helper] FATAL: model file not found — aborting');
+    exitCode = 1;
+    return;
+  }
+  if (!File(tokensPath).existsSync()) {
+    stderr.writeln('[sherpa-helper] FATAL: tokens file not found — aborting');
+    exitCode = 1;
+    return;
+  }
+
+  stderr.writeln('[sherpa-helper] initializing Sherpa bindings...');
   if (Platform.isWindows) {
     setWindowsDllDirectory(runtimeDir);
     sherpa.initBindings(runtimeDir);
   } else {
     sherpa.initBindings();
   }
+  stderr.writeln('[sherpa-helper] bindings OK, loading OfflineRecognizer...');
 
   final recognizer = sherpa.OfflineRecognizer(
     sherpa.OfflineRecognizerConfig(
@@ -42,6 +59,7 @@ Future<void> main(List<String> args) async {
     ),
   );
 
+  stderr.writeln('[sherpa-helper] OfflineRecognizer loaded, signalling ready');
   stdout.writeln(jsonEncode({'type': 'ready'}));
 
   await for (final line in stdin.transform(utf8.decoder).transform(const LineSplitter())) {
