@@ -36,6 +36,7 @@ Future<void> main(List<String> args) async {
         numThreads: 2,
         provider: 'cpu',
         modelingUnit: 'bpe',
+        bpeVocab: tokensPath,
       ),
       decodingMethod: 'greedy_search',
     ),

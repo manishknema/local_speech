@@ -1,0 +1,4 @@
+REFERENCE_TRANSCRIPT_PLACEHOLDER
+यह फ़ाइल test_fixtures/wav16k/hi_clean.wav के वास्तविक ट्रांसक्रिप्ट से भरी जानी चाहिए।
+WAV फ़ाइल चलाएं और जो सुनें उसे टाइप करें, फिर इस placeholder text को हटाएं।
+Source: YouTube oaBV9BSvv98 (Hindi speech)

@@ -2,9 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-
 import '../../core/logging/backend_file_logger.dart';
 import '../../core/platform/sherpa_runtime_locator.dart';
 import 'asr_engine.dart';
@@ -13,10 +10,6 @@ import 'sherpa_helper_client.dart';
 class MeetsyncIndicHelperAsrEngine implements AsrEngine {
   static const _modelFileName = 'model.int8.onnx';
   static const _tokensFileName = 'tokens.txt';
-  static const _modelUrl =
-      'https://huggingface.co/meetsync/indic-conformer-onnx-sherpa/resolve/main/model.int8.onnx';
-  static const _tokensUrl =
-      'https://huggingface.co/meetsync/indic-conformer-onnx-sherpa/resolve/main/tokens.txt';
 
   final SherpaHelperClient _client = SherpaHelperClient();
 
@@ -37,7 +30,7 @@ class MeetsyncIndicHelperAsrEngine implements AsrEngine {
 
   @override
   Future<void> loadModel() async {
-    _modelDir = await _ensureModelFiles();
+    _modelDir = _resolveModelDir();
     if (Platform.isWindows) {
       _runtimeDir = SherpaRuntimeLocator.locateWindowsRuntimeDir() ?? '';
       if (_runtimeDir.isEmpty) {
@@ -89,31 +82,28 @@ class MeetsyncIndicHelperAsrEngine implements AsrEngine {
     unawaited(_client.stop());
   }
 
-  Future<String> _ensureModelFiles() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final modelDir = Directory('${dir.path}/meetsync_indic_conformer');
-    if (!modelDir.existsSync()) {
-      modelDir.createSync(recursive: true);
+  /// Resolves the indic_conformer model directory from the repo assets tree.
+  /// Checks three candidate locations so both `flutter run` (project-relative)
+  /// and installed/debug builds (exe-relative flutter_assets) work.
+  static String _resolveModelDir() {
+    final exeDir = File(Platform.resolvedExecutable).parent.path;
+    final candidates = [
+      '${Directory.current.path}/assets/models/indic_conformer',
+      '$exeDir/data/flutter_assets/assets/models/indic_conformer',
+    ];
+
+    for (final path in candidates) {
+      final dir = Directory(path);
+      final model = File('$path/$_modelFileName');
+      final tokens = File('$path/$_tokensFileName');
+      if (dir.existsSync() && model.existsSync() && tokens.existsSync()) {
+        return dir.absolute.path.replaceAll('\\', '/');
+      }
     }
 
-    await _downloadIfMissing(File('${modelDir.path}/$_modelFileName'), _modelUrl);
-    await _downloadIfMissing(File('${modelDir.path}/$_tokensFileName'), _tokensUrl);
-
-    return modelDir.path.replaceAll('\\', '/');
-  }
-
-  Future<void> _downloadIfMissing(File target, String url) async {
-    if (target.existsSync() && target.lengthSync() > 0) {
-      return;
-    }
-
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode != 200) {
-      throw HttpException(
-        'Failed to download ${target.path} from $url (HTTP ${response.statusCode})',
-      );
-    }
-
-    await target.writeAsBytes(response.bodyBytes, flush: true);
+    throw Exception(
+      'IndicConformer model not found. Place model.int8.onnx and tokens.txt '
+      'in assets/models/indic_conformer/ inside the repo.',
+    );
   }
 }

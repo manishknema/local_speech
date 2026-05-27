@@ -1,16 +1,28 @@
 {
-  "version": "2026-05-23",
+  "version": "2026-05-27",
   "format": {
     "sample_rate_hz": 16000,
     "channels": 1,
     "encoding": "pcm_s16le",
     "duration_seconds": 20
   },
+  "wer_quality_gates": {
+    "hi_clean": 20.0,
+    "en_clean": 15.0,
+    "code_switch_en_hi": 35.0,
+    "ta_clean": 25.0,
+    "te_clean": 25.0,
+    "bn_clean": 25.0,
+    "mr_clean": 25.0,
+    "note": "WER % thresholds for IndicConformer INT8 clean speech — fail CI if exceeded once references are set"
+  },
   "fixtures": [
     {
       "id": "en_clean",
       "path": "test_fixtures/wav16k/en_clean.wav",
       "category": "speech_en",
+      "language_iso": "eng",
+      "reference": "test_fixtures/references/en_clean.txt",
       "expected": {
         "vad": "speech_present",
         "lid_top1": "eng"
@@ -21,6 +33,8 @@
       "id": "hi_clean",
       "path": "test_fixtures/wav16k/hi_clean.wav",
       "category": "speech_hi",
+      "language_iso": "hin",
+      "reference": "test_fixtures/references/hi_clean.txt",
       "expected": {
         "vad": "speech_present",
         "lid_top1": "hin"
@@ -31,19 +45,124 @@
       "id": "code_switch_en_hi",
       "path": "test_fixtures/wav16k/code_switch_en_hi.wav",
       "category": "speech_codeswitch",
+      "language_iso": "mix_eng_hin",
+      "reference": "test_fixtures/references/code_switch_en_hi.txt",
       "expected": {
         "vad": "speech_present",
-        "lid_allowed": [
-          "eng",
-          "hin"
-        ]
+        "lid_allowed": ["eng", "hin"]
       },
       "source_hint": "youtube:7uRyqg2NT-k"
+    },
+    {
+      "id": "ta_clean",
+      "path": "test_fixtures/wav16k/ta_clean.wav",
+      "category": "speech_ta",
+      "language_iso": "tam",
+      "reference": "test_fixtures/references/ta_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "tam"
+      },
+      "source_hint": "REPLACE_ME — Tamil news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "te_clean",
+      "path": "test_fixtures/wav16k/te_clean.wav",
+      "category": "speech_te",
+      "language_iso": "tel",
+      "reference": "test_fixtures/references/te_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "tel"
+      },
+      "source_hint": "REPLACE_ME — Telugu news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "bn_clean",
+      "path": "test_fixtures/wav16k/bn_clean.wav",
+      "category": "speech_bn",
+      "language_iso": "ben",
+      "reference": "test_fixtures/references/bn_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "ben"
+      },
+      "source_hint": "REPLACE_ME — Bengali news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "mr_clean",
+      "path": "test_fixtures/wav16k/mr_clean.wav",
+      "category": "speech_mr",
+      "language_iso": "mar",
+      "reference": "test_fixtures/references/mr_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "mar"
+      },
+      "source_hint": "REPLACE_ME — Marathi news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "pa_clean",
+      "path": "test_fixtures/wav16k/pa_clean.wav",
+      "category": "speech_pa",
+      "language_iso": "pan",
+      "reference": "test_fixtures/references/pa_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "pan"
+      },
+      "source_hint": "REPLACE_ME — Punjabi news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "gu_clean",
+      "path": "test_fixtures/wav16k/gu_clean.wav",
+      "category": "speech_gu",
+      "language_iso": "guj",
+      "reference": "test_fixtures/references/gu_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "guj"
+      },
+      "source_hint": "REPLACE_ME — Gujarati news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "kn_clean",
+      "path": "test_fixtures/wav16k/kn_clean.wav",
+      "category": "speech_kn",
+      "language_iso": "kan",
+      "reference": "test_fixtures/references/kn_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "kan"
+      },
+      "source_hint": "REPLACE_ME — Kannada news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
+    },
+    {
+      "id": "ml_clean",
+      "path": "test_fixtures/wav16k/ml_clean.wav",
+      "category": "speech_ml",
+      "language_iso": "mal",
+      "reference": "test_fixtures/references/ml_clean.txt",
+      "expected": {
+        "vad": "speech_present",
+        "lid_top1": "mal"
+      },
+      "source_hint": "REPLACE_ME — Malayalam news/speech YouTube clip, 20s, single speaker",
+      "status": "fixture_pending"
     },
     {
       "id": "noise_fan",
       "path": "test_fixtures/wav16k/noise_fan.wav",
       "category": "noise",
+      "language_iso": null,
+      "reference": null,
       "expected": {
         "vad": "mostly_non_speech"
       },
@@ -53,6 +172,8 @@
       "id": "music_bg",
       "path": "test_fixtures/wav16k/music_bg.wav",
       "category": "music",
+      "language_iso": null,
+      "reference": null,
       "expected": {
         "vad": "non_speech_or_low_confidence_speech"
       },
@@ -62,15 +183,24 @@
       "id": "silence",
       "path": "test_fixtures/wav16k/silence.wav",
       "category": "silence",
+      "language_iso": null,
+      "reference": null,
       "expected": {
         "vad": "non_speech"
       },
       "source_hint": "synthetic_ffmpeg_anullsrc"
     }
   ],
+  "noisy_environments": {
+    "noise_sources": ["noise_fan", "music_bg"],
+    "snr_tiers_db": [30, 20, 15, 10, 5, 0, -5, -10],
+    "speech_fixtures": ["en_clean", "hi_clean", "code_switch_en_hi"],
+    "note": "ta/te/bn/mr noisy variants to be added once base fixtures are populated"
+  },
   "notes": [
-    "These fixtures are starter baselines; tighten expected labels after first model run.",
+    "Fixtures with status=fixture_pending need a YouTube source ID added to sources.json before they can be downloaded.",
+    "Reference transcripts in test_fixtures/references/*.txt must be populated before WER is meaningful.",
+    "WER quality gates in wer_quality_gates are enforced by compute_wer.py when references are present.",
     "Keep tests tolerant for code-switch and noisy clips via allowed-set assertions."
   ]
 }
-

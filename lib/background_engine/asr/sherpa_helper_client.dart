@@ -31,7 +31,7 @@ class SherpaHelperClient {
     required String runtimeDir,
     required String modelPath,
     required String tokensPath,
-    Duration startupTimeout = const Duration(seconds: 30),
+    Duration startupTimeout = const Duration(seconds: 120),
   }) async {
     if (_process != null) {
       return;

@@ -27,14 +27,14 @@ typedef LoopbackStopDart = void Function(ffi.Pointer instance);
 typedef AudioFreeBufferC = ffi.Void Function(ffi.Pointer<ffi.Uint8> buf);
 typedef AudioFreeBufferDart = void Function(ffi.Pointer<ffi.Uint8> buf);
 
-typedef LoopbackGetDeviceNameC = ffi.Pointer<ffi.Utf8> Function(ffi.Pointer instance);
-typedef LoopbackGetDeviceNameDart = ffi.Pointer<ffi.Utf8> Function(ffi.Pointer instance);
+typedef LoopbackGetDeviceNameC = ffi.Pointer<Utf8> Function(ffi.Pointer instance);
+typedef LoopbackGetDeviceNameDart = ffi.Pointer<Utf8> Function(ffi.Pointer instance);
 
-typedef AudioEnumerateDevicesC = ffi.Pointer<ffi.Utf8> Function(ffi.Int32 isMicMode);
-typedef AudioEnumerateDevicesDart = ffi.Pointer<ffi.Utf8> Function(int isMicMode);
+typedef AudioEnumerateDevicesC = ffi.Pointer<Utf8> Function(ffi.Int32 isMicMode);
+typedef AudioEnumerateDevicesDart = ffi.Pointer<Utf8> Function(int isMicMode);
 
-typedef LoopbackSetPreferredDeviceC = ffi.Void Function(ffi.Pointer instance, ffi.Pointer<ffi.Utf8> name);
-typedef LoopbackSetPreferredDeviceDart = void Function(ffi.Pointer instance, ffi.Pointer<ffi.Utf8> name);
+typedef LoopbackSetPreferredDeviceC = ffi.Void Function(ffi.Pointer instance, ffi.Pointer<Utf8> name);
+typedef LoopbackSetPreferredDeviceDart = void Function(ffi.Pointer instance, ffi.Pointer<Utf8> name);
 
 class WindowsLoopbackStrategy implements AudioCaptureStrategy {
   static const int _vadFrameBytes = 512 * 2;
@@ -88,6 +88,7 @@ class WindowsLoopbackStrategy implements AudioCaptureStrategy {
   String? get selectedDeviceName => _selectedDeviceName;
 
   /// Returns the list of available device names for [forMic]=true (capture) or false (render).
+  @override
   List<String> listAvailableDevices({required bool forMic}) {
     final ptr = _enumerateDevices(forMic ? 1 : 0);
     final raw = ptr.toDartString();
@@ -97,6 +98,7 @@ class WindowsLoopbackStrategy implements AudioCaptureStrategy {
   }
 
   /// Sets preferred device name for next [startCapture]. Pass null to clear (auto-detect).
+  @override
   void setPreferredDevice(String? name) {
     _preferredDeviceOverride = name;
   }

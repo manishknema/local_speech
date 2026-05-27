@@ -1,0 +1,5 @@
+REFERENCE_TRANSCRIPT_PLACEHOLDER
+This file needs to be populated with the actual transcript of test_fixtures/wav16k/code_switch_en_hi.wav
+The clip contains code-switched English + Hindi speech.
+Play the file and type what you hear (both languages), then remove this placeholder text.
+Source: YouTube 7uRyqg2NT-k (EN+HI code-switch)

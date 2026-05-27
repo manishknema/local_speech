@@ -1,0 +1,127 @@
+{
+  "version": "2026-05-27",
+  "defaults": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "encoding": "s16",
+    "duration_seconds": 20
+  },
+  "sources": [
+    {
+      "id": "en_clean",
+      "youtube_id": "ce5qg_rDyRo",
+      "start_seconds": 10,
+      "description": "English speech — clear single speaker",
+      "language": "eng",
+      "status": "downloaded"
+    },
+    {
+      "id": "hi_clean",
+      "youtube_id": "oaBV9BSvv98",
+      "start_seconds": 10,
+      "description": "Hindi speech — clear single speaker",
+      "language": "hin",
+      "status": "downloaded"
+    },
+    {
+      "id": "codeswitch",
+      "output_id": "code_switch_en_hi",
+      "youtube_id": "7uRyqg2NT-k",
+      "start_seconds": 10,
+      "description": "English-Hindi code-switched speech",
+      "language": "mix_eng_hin",
+      "status": "downloaded"
+    },
+    {
+      "id": "noise_source",
+      "output_id": "noise_fan",
+      "youtube_id": "C5Gm8UvxKlU",
+      "start_seconds": 0,
+      "description": "Fan/ambient noise for SNR mixing",
+      "language": null,
+      "status": "downloaded"
+    },
+    {
+      "id": "music_source",
+      "output_id": "music_bg",
+      "youtube_query": "ytsearch:background instrumental music no copyright",
+      "start_seconds": 0,
+      "description": "Background music for SNR mixing",
+      "language": null,
+      "status": "downloaded"
+    },
+    {
+      "id": "ta_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Tamil speech — clear single speaker (news/documentary preferred)",
+      "language": "tam",
+      "status": "pending",
+      "note": "Find a Tamil YouTube clip with clean single-speaker speech, ~20s, no music"
+    },
+    {
+      "id": "te_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Telugu speech — clear single speaker",
+      "language": "tel",
+      "status": "pending"
+    },
+    {
+      "id": "bn_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Bengali speech — clear single speaker",
+      "language": "ben",
+      "status": "pending"
+    },
+    {
+      "id": "mr_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Marathi speech — clear single speaker",
+      "language": "mar",
+      "status": "pending"
+    },
+    {
+      "id": "pa_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Punjabi speech — clear single speaker",
+      "language": "pan",
+      "status": "pending"
+    },
+    {
+      "id": "gu_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Gujarati speech — clear single speaker",
+      "language": "guj",
+      "status": "pending"
+    },
+    {
+      "id": "kn_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Kannada speech — clear single speaker",
+      "language": "kan",
+      "status": "pending"
+    },
+    {
+      "id": "ml_clean",
+      "youtube_id": "REPLACE_ME",
+      "start_seconds": 10,
+      "description": "Malayalam speech — clear single speaker",
+      "language": "mal",
+      "status": "pending"
+    }
+  ],
+  "instructions": [
+    "For pending sources: find a YouTube video with 20+ seconds of clear single-speaker speech in the target language.",
+    "Prefer news anchors, documentary narration, or audiobooks — avoid music, echo, or multiple speakers.",
+    "Replace REPLACE_ME with the 11-character YouTube video ID (from the URL after v=).",
+    "Change status from 'pending' to 'ready' once you have a valid ID.",
+    "Then run: python scripts/prepare_test_fixtures.py --ids <id1> <id2>",
+    "Then add the reference transcript to test_fixtures/references/<id>.txt"
+  ]
+}

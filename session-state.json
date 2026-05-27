@@ -465,6 +465,25 @@
       "action": "FULL TASK PLAN (locked by user — do not skip ahead, do not proceed to next task until current passes validation): TASK 1 (IMMEDIATE): Windows mic fix — remove SetClientProperties, validate SNR > 25dB. TASK 2: Replace VadUtteranceSegmenter with 2-state implementation (silence/utteranceActive only — flushing merged into utteranceActive), update contract tests. TASK 3: Test-only — loopback with useMic=false, play audio, record WAV, verify SNR > 30dB, no code changes expected. TASK 4: Create lib/features/transcription/data/strategies/audio_strategy_factory.dart with PlatformAudioCapabilities and platform detection (Windows/Linux/macOS/Android). TASK 5: Create linux_audio_strategy.dart using parec/PipeWire monitor source for mic and loopback. TASK 6: Create macos_audio_strategy.dart using record package + BlackHole for loopback. TASK 7: Create android_audio_strategy.dart using record package (AudioSource.MIC) + MediaProjection stub for loopback, add MainActivity.kt additions and AndroidManifest permissions. TASK 8: Create lib/features/onboarding/platform_capabilities_widget.dart showing per-platform capability status with actionable install steps. Tasks 4-8 can be implemented in parallel after Tasks 1-3 pass."
     }
   ],
+    {
+      "timestamp_utc": "2026-05-27T11:00:00Z",
+      "agent": "claude",
+      "phase": "root-cause",
+      "action": "SHERPA SUBPROCESS COMPILE ERROR ROOT CAUSE: tool/sherpa_helper.dart and tool/meetsync_smoke.dart were calling sherpa.OfflineModelConfig() without the required tokens: parameter (sherpa_onnx 1.13.2 constructor requires tokens). The subprocess crashed at compile time, causing SherpaHelperClient to timeout at 30s waiting for the ready handshake that never came. Fix: added tokens: tokensPath to all three locations (sherpa_helper.dart, meetsync_smoke.dart, meetsync_indic_offline_asr_engine.dart). Also increased startup timeout from 30s to 120s for JIT+model-load."
+    },
+    {
+      "timestamp_utc": "2026-05-27T11:15:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "CI decision matrix implemented: split build-and-test OS matrix into build-windows, build-linux, build-android (if: false scaffold) jobs. Added wer-benchmark job (Windows, main-only, caches indic_conformer). Updated ensure_models_assets.py with --full flag and subdir support for models_manifest.json. Added ci_skip field to manifest for large models. startup timeout raised to 120s."
+    },
+    {
+      "timestamp_utc": "2026-05-27T11:30:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "WER benchmark pipeline created: scripts/compute_wer.py with Levenshtein edit distance, per-language WER reporting, noisy variant support (--noisy flag), quality gates per language. test_fixtures/references/ directory with placeholder .txt files for en_clean, hi_clean, code_switch_en_hi. test_fixtures/fixtures_manifest.json expanded with Tamil, Telugu, Bengali, Marathi, Punjabi, Gujarati, Kannada, Malayalam language fixture stubs (status=fixture_pending). test_fixtures/sources.json recreated with all sources including pending Indic language stubs with REPLACE_ME YouTube IDs."
+    }
+  ],
   "biography_of_the_12_hour_build": {
     "the_saga": "A marathon debugging session focused on stabilizing the Windows loopback capture and AI intelligence pipeline. The build evolved from a mock-heavy simulation to a production-grade infrastructure with real-time hardware probing and diarization.",
     "the_wasapi_starvation": "DISCOVERY: WASAPI Loopback yields zero packets when system audio is silent. PREVIOUS ERROR: Injected arbitrary int16 zeros in C++, which clobbered the byte alignment for the downstream Float32 ONNX tensors.",
@@ -504,7 +523,13 @@
     "DECISION (2026-05-27): In-Person Meeting mic selection uses PKEY_AudioEndpoint_FormFactor (locale-independent, WHQL-certified) as the primary signal. Stage 1 = FormFactor 4/5/6 (Microphone/Headset/Handset — real hardware mics), Stage 2 = FormFactor 2 (LineLevel — USB mics, audio interfaces, Focusrite, Blue Yeti), virtual-device name guard on both stages, Fallback = GetDefaultAudioEndpoint only if both stages fail. m_needsMicGain is true only for stages 1 and 2 (real hardware), not for fallback or Stereo Mix.",
     "DECISION (2026-05-27): Session WAV is always saved automatically using a streaming writer — 44-byte placeholder header at start, PCM chunks streamed to disk per bytesStream event, real header written on stop. BytesBuilder full-session accumulation removed. Minimum threshold _minimumSessionWavBytes enforced before header finalization. File path surfaced to UI via SESSION_WAV_SAVED IPC. User exports to Documents via drawer action.",
     "DECISION (2026-05-27): Device picker is the user-facing recovery path for 'audio bar not moving'. No technical jargon exposed — just a list of device names with 'Auto-detect (default)' option. Preference persisted in SharedPreferences (preferred_mic_device / preferred_loopback_device). Meeting restarts automatically on device change if a meeting is active.",
-    "DECISION (2026-05-27): modelingUnit: 'bpe' is a required field for all IndicConformer-based ASR configs. Any sherpa_onnx subprocess script (tool/sherpa_helper.dart, tool/meetsync_smoke.dart) must include it in OfflineModelConfig. Omitting it silently causes Sherpa to default to cjkchar tokenization."
+    "DECISION (2026-05-27): modelingUnit: 'bpe' is a required field for all IndicConformer-based ASR configs. Any sherpa_onnx subprocess script (tool/sherpa_helper.dart, tool/meetsync_smoke.dart) must include it in OfflineModelConfig. Omitting it silently causes Sherpa to default to cjkchar tokenization.",
+    "DECISION (2026-05-27): OfflineModelConfig.tokens is REQUIRED (Dart named param) in sherpa_onnx 1.13.2 — cannot be omitted. For NeMo CTC with BPE, set BOTH tokens: tokensPath AND bpeVocab: tokensPath — they point to the same tokens.txt file. Removing tokens: breaks compilation of the subprocess.",
+    "DECISION (2026-05-27): SherpaHelperClient startup timeout raised from 30s to 120s. Reason: dart run tool/sherpa_helper.dart incurs JIT compile time before model load. On cold start (no .dart_snapshot), compile + 300MB model init can exceed 30s. 120s is conservative safe bound.",
+    "DECISION (2026-05-27): CI decision matrix locked — Phase 1: Windows (main dev platform, full build + test, active); Phase 2: Linux (user has machine, add after Windows E2E passes, scaffold active); Phase 3: Android (Exynos 1280 CPU-only, after Linux binaries proven, scaffold present with if: false gate); Phase 4: RTX 5090 custom 600M IndicConformer compilation via NeMo/sherpa-onnx (user owns hardware, future phase).",
+    "DECISION (2026-05-27): WER benchmark pipeline locked. scripts/compute_wer.py runs meetsync_smoke.dart on speech fixtures, computes WER via Levenshtein edit distance. Reference transcripts in test_fixtures/references/<id>.txt must be populated manually. Quality gates: hi_clean < 20%, en_clean < 15%, code_switch < 35%. --noisy flag enables WER across all 8 SNR tiers for each noise source.",
+    "DECISION (2026-05-27): Multi-language test fixture expansion planned: Tamil, Telugu, Bengali, Marathi, Punjabi, Gujarati, Kannada, Malayalam. YouTube source IDs in sources.json have status=pending. Workflow: find clean single-speaker clip -> add youtube_id -> run prepare_test_fixtures.py -> populate reference transcript -> run compute_wer.py.",
+    "DECISION (2026-05-27): models_manifest.json ci_skip flag controls which models are downloaded in CI. ci_skip=true models (LID 929MB, IndicConformer 300MB) are skipped by default. ensure_models_assets.py --full downloads all. CI WER benchmark job caches indic_conformer separately and runs only on push to main (not PRs) to avoid 300MB downloads on every PR."
   ],
   "technical_diagnostics": {
     "wasapi_error": "0x88890001 (AUDCLNT_E_DEVICE_INVALIDATED) or Starvation during silence. Solved via eMultimedia endpoint + zero-injection.",

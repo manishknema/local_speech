@@ -1,0 +1,4 @@
+REFERENCE_TRANSCRIPT_PLACEHOLDER
+This file needs to be populated with the actual transcript of test_fixtures/wav16k/en_clean.wav
+Play the file and type what you hear, then remove this placeholder text.
+Source: YouTube ce5qg_rDyRo (English speech)

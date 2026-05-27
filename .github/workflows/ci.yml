@@ -1,5 +1,12 @@
 name: VigyanTranscribe CI
 
+# CI Decision Matrix (2026-05-27):
+# Phase 1 (NOW):   Windows — primary dev platform, full build + test
+# Phase 2 (NEXT):  Linux — user has machine; add after Windows tests pass
+# Phase 3 (LATER): Android — after Linux binaries proven; needs Exynos 1280 CPU-only path
+# Phase 4 (FUTURE): RTX 5090 — custom 600M IndicConformer compilation via NeMo/sherpa-onnx
+# macOS skipped — no macOS hardware in user's lab; enable on-demand
+
 on:
   push:
     branches: ["main"]
@@ -8,14 +15,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    runs-on: ${{ matrix.os }}
-
+  # ─────────────────────────────────────────────
+  # Windows desktop build + unit tests
+  # ─────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,34 +38,88 @@ jobs:
       - name: Install yt-dlp
         run: python -m pip install --upgrade pip yt-dlp
 
-      - name: Install FFmpeg (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg clang cmake ninja-build pkg-config libgtk-3-dev
-
-      - name: Install FFmpeg (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install ffmpeg
-
       - name: Install FFmpeg (Windows)
-        if: runner.os == 'Windows'
         shell: pwsh
-        run: |
-          choco install ffmpeg -y --no-progress
+        run: choco install ffmpeg -y --no-progress
 
       - name: Pub get
         run: flutter pub get
 
-      - name: Cache models in assets/models
+      - name: Cache models (small — VAD, speaker_embed, tokens)
         uses: actions/cache@v4
         with:
           path: assets/models
           key: ${{ runner.os }}-models-${{ hashFiles('assets/models/models_manifest.json') }}
 
-      - name: Run unified pipeline (fixtures + analyze + tests + build)
+      - name: Ensure small models
+        shell: bash
+        run: python scripts/ensure_models_assets.py
+
+      - name: Run pipeline (analyze + test + build)
+        shell: bash
+        env:
+          SKIP_DOWNLOAD: 1
+          SKIP_CONVERT: 0
+          SKIP_NOISY: 0
+          ENSURE_MODELS: 0      # already done above
+          RUN_ANALYZE: 1
+          RUN_TESTS: 1
+          RUN_BUILD: 1
+        run: bash scripts/test_pipeline.sh
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vigyantranscribe-windows-artifacts
+          path: |
+            build/windows/**/*.exe
+            build/windows/**/*.dll
+          if-no-files-found: warn
+
+  # ─────────────────────────────────────────────
+  # Linux desktop build + unit tests
+  # Phase 2 — enabled; activate when Linux build is stable
+  # ─────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.44.0"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg clang cmake ninja-build pkg-config \
+            libgtk-3-dev libasound2-dev libpulse-dev
+
+      - name: Install yt-dlp
+        run: python -m pip install --upgrade pip yt-dlp
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Cache models (small — VAD, speaker_embed, tokens)
+        uses: actions/cache@v4
+        with:
+          path: assets/models
+          key: ${{ runner.os }}-models-${{ hashFiles('assets/models/models_manifest.json') }}
+
+      - name: Ensure small models
+        run: python scripts/ensure_models_assets.py
+
+      - name: Run pipeline (analyze + test + build)
         shell: bash
         env:
           SKIP_DOWNLOAD: 1
@@ -71,15 +129,123 @@ jobs:
           RUN_ANALYZE: 1
           RUN_TESTS: 1
           RUN_BUILD: 1
-        run: |
-          bash scripts/test_pipeline.sh
+        run: bash scripts/test_pipeline.sh
 
-      - name: Upload artifacts
+      - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vigyantranscribe-${{ matrix.os }}-artifacts
-          path: |
-            build/**
-            test_fixtures/wav16k/**
-            test_fixtures/noisy_variants/**
+          name: vigyantranscribe-linux-artifacts
+          path: build/linux/**
+          if-no-files-found: warn
+
+  # ─────────────────────────────────────────────
+  # Android APK build (unit tests only — no instrumented)
+  # Phase 3 — scaffold ready; activate after Linux passes and
+  #            Exynos 1280 CPU-only ASR path is implemented
+  # ─────────────────────────────────────────────
+  build-android:
+    runs-on: ubuntu-latest
+    # TODO: Remove 'if: false' when Android build is ready
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.44.0"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Cache models (small)
+        uses: actions/cache@v4
+        with:
+          path: assets/models
+          key: android-models-${{ hashFiles('assets/models/models_manifest.json') }}
+
+      - name: Ensure small models
+        run: python scripts/ensure_models_assets.py
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Flutter test (unit only)
+        run: flutter test
+
+      - name: Build Android APK (debug)
+        run: flutter build apk --debug
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: vigyantranscribe-android-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: warn
+
+  # ─────────────────────────────────────────────
+  # WER Benchmark (offline ASR quality gate)
+  # Requires IndicConformer model — runs only when
+  # assets/models/indic_conformer/model.int8.onnx is cached
+  # Phase 2+ — activate after Windows E2E proof passes
+  # ─────────────────────────────────────────────
+  wer-benchmark:
+    runs-on: windows-latest
+    # Only run if model cache hit; skip on PRs to avoid 300MB downloads
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.44.0"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Cache IndicConformer model
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: assets/models/indic_conformer
+          key: indic-conformer-${{ hashFiles('assets/models/models_manifest.json') }}
+
+      - name: Download IndicConformer (if cache miss)
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: python scripts/ensure_models_assets.py --full
+
+      - name: Run WER benchmark
+        shell: bash
+        run: python scripts/compute_wer.py --report wer_report.json
+
+      - name: Upload WER report
+        uses: actions/upload-artifact@v4
+        with:
+          name: wer-report
+          path: wer_report.json
           if-no-files-found: warn

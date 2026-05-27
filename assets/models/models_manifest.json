@@ -1,30 +1,57 @@
 {
-  "version": "2026-05-23",
+  "version": "2026-05-27",
   "models": [
     {
       "name": "VAD Engine",
       "file_name": "silero_vad.onnx",
       "url": "https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx",
-      "sha256": ""
+      "sha256": "",
+      "size_mb": 2,
+      "ci_skip": false
     },
     {
       "name": "LID Engine",
       "file_name": "mms_lid.onnx",
       "url": "https://huggingface.co/Xenova/mms-lid-126/resolve/main/onnx/model_quantized.onnx",
-      "sha256": ""
+      "sha256": "",
+      "size_mb": 929,
+      "ci_skip": true,
+      "note": "929MB — skip in CI, download at runtime or via ensure_models_assets.py --full"
     },
     {
       "name": "Speaker Embedder",
       "file_name": "speaker_embed.onnx",
       "url": "https://huggingface.co/onnx-community/wespeaker-voxceleb-resnet34-LM/resolve/main/onnx/model.onnx",
-      "sha256": ""
+      "sha256": "",
+      "size_mb": 26,
+      "ci_skip": false
     },
     {
-      "name": "Whisper STT",
-      "file_name": "whisper_tiny_en.onnx",
-      "url": "https://huggingface.co/onnx-community/whisper-tiny.en/resolve/main/onnx/model_quantized.onnx",
-      "sha256": ""
+      "name": "IndicConformer Model (INT8)",
+      "file_name": "model.int8.onnx",
+      "subdir": "indic_conformer",
+      "url": "https://huggingface.co/meetsync/indic-conformer-onnx-sherpa/resolve/main/model.int8.onnx",
+      "sha256": "",
+      "size_mb": 300,
+      "ci_skip": true,
+      "note": "~300MB INT8 NeMo CTC model — skip in CI, must be present for ASR. Place in assets/models/indic_conformer/"
+    },
+    {
+      "name": "IndicConformer Tokens (BPE Vocab)",
+      "file_name": "tokens.txt",
+      "subdir": "indic_conformer",
+      "url": "https://huggingface.co/meetsync/indic-conformer-onnx-sherpa/resolve/main/tokens.txt",
+      "sha256": "",
+      "size_mb": 1,
+      "ci_skip": false,
+      "note": "BPE vocab file required for modelingUnit=bpe in Sherpa OfflineModelConfig"
     }
+  ],
+  "assembly_notes": [
+    "Run: python scripts/ensure_models_assets.py              (skips ci_skip=true models)",
+    "Run: python scripts/ensure_models_assets.py --full       (downloads all including large models)",
+    "Run: ENSURE_MODELS=1 bash scripts/test_pipeline.sh       (CI path, respects ci_skip)",
+    "IndicConformer must be assembled BEFORE flutter build — it is resolved from assets/models/indic_conformer/ at runtime",
+    "Future: python scripts/ensure_models_assets.py --profile rtx5090  will select 600M INT8 IndicConformer compiled on user RTX 5090"
   ]
 }
-
