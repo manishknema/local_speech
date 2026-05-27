@@ -40,6 +40,9 @@ class VadUtteranceSegmenter {
 
   bool get hasActiveUtterance => _utteranceBuffer.isNotEmpty;
 
+  /// Number of Float32 samples currently in the utterance buffer.
+  int get utteranceBufferSamples => _utteranceBuffer.length;
+
   Float32List? processVadFrame(Uint8List pcm16Frame, bool isSpeech) {
     final frame = PcmCodec.pcm16LeToFloat32(pcm16Frame);
     final frameSamples = frame.length;

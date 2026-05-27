@@ -233,6 +233,9 @@ class BackgroundAudioProcessingEngine {
       return;
     }
 
+    int audioPacketCount = 0;
+    DateTime lastBufferLogTime = DateTime.now();
+
     _audioSubscription = audioCaptureStrategy.bytesStream.listen((bytes) async {
       if (_sessionWavFile != null && bytes.isNotEmpty) {
         try {
@@ -241,6 +244,8 @@ class BackgroundAudioProcessingEngine {
         } catch (_) {}
       }
       final now = DateTime.now();
+      audioPacketCount++;
+
       if (now.difference(_lastVolumeUpdateTime).inMilliseconds > 50) {
         _emitVolumeLevel(bytes, now: now);
       }
@@ -249,25 +254,64 @@ class BackgroundAudioProcessingEngine {
       final isSpeech = vadDecision.isSpeech;
       if (now.difference(_lastVadDebugTime).inMilliseconds >= 250) {
         BackendFileLogger.instance.log(
-          'VAD debug: prob=${vadDecision.probability.toStringAsFixed(3)} threshold=${VadGatekeeper.liveSpeechThreshold.toStringAsFixed(2)} speech=$isSpeech samples=${vadDecision.sampleCount}',
+          'VAD: prob=${vadDecision.probability.toStringAsFixed(3)} '
+          'thr=${VadGatekeeper.liveSpeechThreshold.toStringAsFixed(2)} '
+          'speech=$isSpeech samples=${vadDecision.sampleCount} '
+          'state=${_utteranceSegmenter.state.name} packets=$audioPacketCount',
         );
         _lastVadDebugTime = now;
       }
+
       final previousState = _utteranceSegmenter.state;
+      final bufferSamplesBefore = _utteranceSegmenter.utteranceBufferSamples;
       final completedSegment = _utteranceSegmenter.processVadFrame(bytes, isSpeech);
       final currentState = _utteranceSegmenter.state;
+
+      // Log every state transition
+      if (previousState != currentState) {
+        BackendFileLogger.instance.log(
+          'VAD state: ${previousState.name} → ${currentState.name} '
+          '(bufferSamples=$bufferSamplesBefore isSpeech=$isSpeech)',
+        );
+      }
 
       if (previousState == VadUtteranceState.silence &&
           currentState == VadUtteranceState.utteranceActive) {
         _utteranceStartTime = now;
         BackendFileLogger.instance.log(
-          'Speech started; opening utterance buffer with 300ms pre-roll',
+          'Utterance started — 300ms pre-roll loaded, buffering speech',
         );
       }
 
+      // Log periodically while utterance is accumulating so progress is visible
+      if (_utteranceSegmenter.hasActiveUtterance &&
+          now.difference(lastBufferLogTime).inMilliseconds >= 500) {
+        final accumulated = _utteranceSegmenter.utteranceBufferSamples;
+        final minSamples = (_utteranceSegmenter.minSegmentMs * 16000 / 1000).round();
+        BackendFileLogger.instance.log(
+          'Utterance accumulating: ${accumulated} samples '
+          '(${(accumulated / 16000 * 1000).round()}ms, '
+          'min=${_utteranceSegmenter.minSegmentMs}ms/$minSamples samples)',
+        );
+        lastBufferLogTime = now;
+      }
+
       if (completedSegment != null) {
+        BackendFileLogger.instance.log(
+          'Utterance completed: ${completedSegment.length} samples '
+          '(${(completedSegment.length / 16000 * 1000).round()}ms) → dispatching to ASR',
+        );
         await _processFullSentence(completedSegment);
         _utteranceStartTime = null;
+      } else if (previousState == VadUtteranceState.flushing &&
+          currentState == VadUtteranceState.silence) {
+        // Segment finalized but returned null — it was below minSegmentMs
+        BackendFileLogger.instance.log(
+          'Utterance DISCARDED — below minSegmentMs=${_utteranceSegmenter.minSegmentMs}ms '
+          '(was $bufferSamplesBefore samples = '
+          '${(bufferSamplesBefore / 16000 * 1000).round()}ms)',
+          level: 'WARN',
+        );
       }
 
       if (_utteranceSegmenter.hasActiveUtterance && _utteranceStartTime != null) {
@@ -277,7 +321,8 @@ class BackgroundAudioProcessingEngine {
             : _offlineAsrMaxSegmentDurationMs;
         if (ageMs >= forceFlushLimitMs) {
           BackendFileLogger.instance.log(
-            'Forced flush due to max utterance age (${ageMs}ms, limit=${forceFlushLimitMs}ms)',
+            'Force flush — utterance age ${ageMs}ms >= limit ${forceFlushLimitMs}ms '
+            '(${_utteranceSegmenter.utteranceBufferSamples} samples)',
             level: 'WARN',
           );
           final forcedSegment = _utteranceSegmenter.forceFlush();
