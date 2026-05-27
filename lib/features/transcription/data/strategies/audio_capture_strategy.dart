@@ -15,4 +15,14 @@ abstract class AudioCaptureStrategy {
 
   /// Stops the audio capture and releases resources.
   Future<void> stopCapture();
+
+  /// The human-readable name of the device selected during startCapture.
+  /// Null until startCapture has been called successfully.
+  String? get selectedDeviceName;
+
+  /// Returns available device names for the given mode (mic or loopback).
+  List<String> listAvailableDevices({required bool forMic});
+
+  /// Overrides auto-detection for the next startCapture call. Null = auto-detect.
+  void setPreferredDevice(String? name);
 }

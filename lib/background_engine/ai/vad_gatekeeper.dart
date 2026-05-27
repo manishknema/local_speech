@@ -6,6 +6,8 @@ import '../../features/transcription/domain/interfaces/onnx_processor.dart';
 
 /// Implements Voice Activity Detection using the Silero VAD ONNX model.
 class VadGatekeeper implements OnnxProcessor<Uint8List, bool> {
+  static const double liveSpeechThreshold = 0.25;
+
   final String modelPath;
   OrtSession? _session;
   
@@ -43,13 +45,24 @@ class VadGatekeeper implements OnnxProcessor<Uint8List, bool> {
 
   @override
   Future<bool> infer(Uint8List pcmBytes) async {
+    final decision = await inferDetailed(pcmBytes);
+    return decision.isSpeech;
+  }
+
+  Future<VadDecision> inferDetailed(Uint8List pcmBytes) async {
     if (_session == null) throw Exception("VAD Session not initialized");
 
     // PRODUCTION FIX: Precise Normalization using ByteData view to avoid alignment issues
     final floatList = _normalizeInt16ToFloat32(pcmBytes);
     
     // Silero VAD v4 requires exactly 512, 1024, or 1536 samples.
-    if (floatList.length < 512) return false;
+    if (floatList.length < 512) {
+      return const VadDecision(
+        isSpeech: false,
+        probability: 0.0,
+        sampleCount: 0,
+      );
+    }
 
     try {
       final inputTensor = OrtValueTensor.createTensorWithDataList(
@@ -70,10 +83,11 @@ class VadGatekeeper implements OnnxProcessor<Uint8List, bool> {
       final outputs = _session!.run(runOptions, inputs);
       
       bool isSpeech = false;
+      double probability = 0.0;
       if (outputs.isNotEmpty && outputs[0] != null) {
           final probValue = outputs[0]!.value as List<List<double>>;
-          final probability = probValue[0][0];
-          isSpeech = probability > 0.4; // Responsive threshold
+          probability = probValue[0][0];
+          isSpeech = probability > liveSpeechThreshold;
 
           // Update internal state from output index 1 [2, 1, 128]
           if (outputs.length > 1 && outputs[1] != null) {
@@ -97,10 +111,18 @@ class VadGatekeeper implements OnnxProcessor<Uint8List, bool> {
         element?.release();
       }
 
-      return isSpeech;
+      return VadDecision(
+        isSpeech: isSpeech,
+        probability: probability,
+        sampleCount: floatList.length,
+      );
     } catch (e) {
       print("VAD Inference Error: $e");
-      return false;
+      return VadDecision(
+        isSpeech: false,
+        probability: 0.0,
+        sampleCount: floatList.length,
+      );
     }
   }
 
@@ -125,4 +147,16 @@ class VadGatekeeper implements OnnxProcessor<Uint8List, bool> {
     _session?.release();
     _session = null;
   }
+}
+
+class VadDecision {
+  final bool isSpeech;
+  final double probability;
+  final int sampleCount;
+
+  const VadDecision({
+    required this.isSpeech,
+    required this.probability,
+    required this.sampleCount,
+  });
 }

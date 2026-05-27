@@ -87,6 +87,21 @@ class IpcMessage {
     );
   }
 
+  static IpcMessage asrPartial(
+    String text, {
+    String? language,
+    String? engineId,
+  }) {
+    return IpcMessage(
+      type: 'ASR_PARTIAL',
+      payload: {
+        'text': text,
+        if (language != null) 'language': language,
+        if (engineId != null) 'engineId': engineId,
+      },
+    );
+  }
+
   static IpcMessage captureStatus({
     required String mode,
     required String statusText,

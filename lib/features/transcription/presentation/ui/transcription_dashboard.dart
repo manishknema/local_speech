@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../core/ipc/ipc_message.dart';
 import '../../data/local_ipc_transcription_service.dart';
+import '../../data/strategies/windows_loopback_strategy.dart';
 import '../../../../core/database/sqlite_database_repository.dart';
 import '../../../../core/hardware/hardware_scanner.dart';
 
@@ -37,6 +40,9 @@ class TranscriptBlock {
 class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
   late LocalIpcTranscriptionService _transcriptionService;
   final HardwareScanner _scanner = HardwareScannerFactory.getScanner();
+  StreamSubscription<String>? _logSubscription;
+  StreamSubscription<String>? _rawMessageSubscription;
+  StreamSubscription<bool>? _connectionStateSubscription;
   
   // State
   final List<TranscriptBlock> _transcripts = [];
@@ -46,6 +52,10 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
   bool _isMeetingActive = false;
   bool _isConnectedToEngine = false;
   String _captureStatusLine = 'Capture: Idle';
+  String? _sessionWavPath;
+  List<String> _availableDevices = [];
+  bool _deviceListForMic = true;
+  String _liveTranscript = '';
   double _volumeLevel = 0.0;
   DateTime _lastSignalTime = DateTime.now().subtract(const Duration(seconds: 10));
   
@@ -76,21 +86,36 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
   Future<void> _connectToEngine() async {
     try {
       await _transcriptionService.connect();
-      setState(() => _isConnectedToEngine = true);
-      
-      _transcriptionService.logStream.listen((logMsg) {
+      _connectionStateSubscription ??=
+          _transcriptionService.connectionStateStream.listen((connected) {
+        if (!mounted) return;
+        setState(() {
+          _isConnectedToEngine = connected;
+          if (!connected) {
+            _isMeetingActive = false;
+          }
+        });
+      });
+
+      setState(() => _isConnectedToEngine = _transcriptionService.isConnected);
+
+      _logSubscription ??= _transcriptionService.logStream.listen((logMsg) {
         widget.talker.info(logMsg);
       });
       
-      _transcriptionService.rawMessageStream.listen((rawJson) {
+      _rawMessageSubscription ??= _transcriptionService.rawMessageStream.listen((rawJson) {
         final msg = IpcMessage.fromJson(rawJson);
         
         if (msg.type == 'TRANSCRIPT') {
           final payload = msg.payload;
           final signature = payload['signature'] ?? 'Unknown';
           final language = payload['language'] ?? 'Unknown';
-          final text = payload['text'] ?? '';
+          final text = ((payload['text'] ?? '') as String).trim();
           final translated = payload['translated'] ?? false;
+
+          if (text.isEmpty) {
+            return;
+          }
 
           setState(() {
             _transcripts.add(TranscriptBlock(
@@ -119,15 +144,41 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
             _modelStatuses[msg.payload['modelName']] = msg.payload['status'];
           });
         }
+        else if (msg.type == 'CAPTURE_STATUS') {
+          setState(() {
+            _captureStatusLine =
+                (msg.payload['statusText'] as String?) ?? _captureStatusLine;
+          });
+        }
+        else if (msg.type == 'ASR_PARTIAL') {
+          setState(() {
+            _liveTranscript = (msg.payload['text'] as String?) ?? '';
+          });
+        }
         else if (msg.type == 'CONTROL') {
           final action = msg.payload['action'];
           if (action == 'ENGINE_ACTIVE') {
-            setState(() => _isMeetingActive = true);
+            setState(() {
+              _isMeetingActive = true;
+              _liveTranscript = '';
+            });
           } else if (action == 'ENGINE_IDLE') {
             setState(() {
                _isMeetingActive = false;
                _volumeLevel = 0;
+               _liveTranscript = '';
             });
+          } else if (action == 'DEVICE_LIST') {
+            final devices = (msg.payload['devices'] as List?)?.cast<String>() ?? [];
+            final forMic = (msg.payload['forMic'] as bool?) ?? true;
+            setState(() {
+              _availableDevices = devices;
+              _deviceListForMic = forMic;
+            });
+            if (mounted) _showDevicePickerDialog(forMic);
+          } else if (action == 'SESSION_WAV_SAVED') {
+            final path = (msg.payload['path'] as String?) ?? '';
+            setState(() { _sessionWavPath = path; });
           }
         }
       });
@@ -149,20 +200,46 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
     });
   }
 
-  void _toggleMeeting() {
+  Future<void> _startInPersonMeeting() async {
     if (!_isConnectedToEngine) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Cannot start: Not connected to Background Engine.")),
       );
       return;
     }
+    setState(() {
+      _transcripts.clear();
+      _liveTranscript = '';
+      _sessionWavPath = null;
+      _deviceListForMic = true;
+    });
+    // Apply saved device preference before starting.
+    final saved = await WindowsLoopbackStrategy.loadPreferredDevice(forMic: true);
+    if (saved != null) _transcriptionService.setPreferredDevice(saved);
+    _transcriptionService.startMeeting(useMic: true);
+  }
 
-    if (_isMeetingActive) {
-      _transcriptionService.stopMeeting();
-    } else {
-      _transcripts.clear(); 
-      _transcriptionService.startMeeting();
+  Future<void> _startLiveMeeting() async {
+    if (!_isConnectedToEngine) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Cannot start: Not connected to Background Engine.")),
+      );
+      return;
     }
+    setState(() {
+      _transcripts.clear();
+      _liveTranscript = '';
+      _sessionWavPath = null;
+      _deviceListForMic = false;
+    });
+    // Apply saved device preference before starting.
+    final saved = await WindowsLoopbackStrategy.loadPreferredDevice(forMic: false);
+    if (saved != null) _transcriptionService.setPreferredDevice(saved);
+    _transcriptionService.startMeeting(useMic: false);
+  }
+
+  void _stopMeeting() {
+    _transcriptionService.stopMeeting();
   }
   
   void _updateSpeakerTag(String signature, String newName) {
@@ -171,6 +248,94 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
         _speakerTags[signature] = newName;
       });
       _transcriptionService.updateTag(signature, newName);
+    }
+  }
+
+  void _showDevicePickerDialog(bool forMic) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(forMic ? 'Choose Microphone' : 'Choose Playback Device'),
+        content: SizedBox(
+          width: 400,
+          child: _availableDevices.isEmpty
+              ? const Text('No devices found.')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Audio bar not moving? Pick a different device below.',
+                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ..._availableDevices.map((name) => ListTile(
+                      dense: true,
+                      title: Text(name),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        _transcriptionService.setPreferredDevice(name);
+                        await WindowsLoopbackStrategy.savePreferredDevice(name, forMic: forMic);
+                        if (_isMeetingActive) {
+                          _transcriptionService.stopMeeting();
+                          await Future.delayed(const Duration(milliseconds: 500));
+                          _transcriptionService.startMeeting(useMic: forMic);
+                        }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Switched to: $name')),
+                          );
+                        }
+                      },
+                    )),
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.auto_fix_high, size: 16),
+                      title: const Text('Auto-detect (default)'),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        _transcriptionService.setPreferredDevice(null);
+                        await WindowsLoopbackStrategy.savePreferredDevice(null, forMic: forMic);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Switched back to auto-detect')),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel'))],
+      ),
+    );
+  }
+
+  Future<void> _exportSessionWav() async {
+    final wavPath = _sessionWavPath;
+    if (wavPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No session WAV recorded yet. Stop the meeting first.')),
+      );
+      return;
+    }
+    try {
+      final src = File(wavPath);
+      final dir = await getApplicationDocumentsDirectory();
+      final dest = File('${dir.path}/vigyan_session_${DateTime.now().millisecondsSinceEpoch}.wav');
+      await src.copy(dest.path);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('WAV exported to: ${dest.path}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('WAV export failed: $e')),
+        );
+      }
     }
   }
 
@@ -319,6 +484,9 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
 
   @override
   void dispose() {
+    _logSubscription?.cancel();
+    _rawMessageSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
     _scrollController.dispose();
     _transcriptionService.dispose();
     for (var controller in _tagControllers.values) {
@@ -388,7 +556,9 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            _isConnectedToEngine ? 'ENGINE ${_isMeetingActive ? "ACTIVE" : "IDLE"}' : 'DISCONNECTED',
+                            _isConnectedToEngine
+                                ? (_isMeetingActive ? _captureStatusLine : 'ENGINE IDLE')
+                                : 'DISCONNECTED',
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: _isConnectedToEngine ? Colors.green : theme.colorScheme.onErrorContainer,
                               fontWeight: FontWeight.bold,
@@ -454,64 +624,74 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
         ),
         const Divider(),
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 16),
-          child: Text('Service Controls', style: theme.textTheme.titleMedium),
+          padding: const EdgeInsets.fromLTRB(28, 16, 28, 10),
+          child: Text('Start Meeting', style: theme.textTheme.titleMedium),
         ),
-        NavigationDrawerDestination(
-          icon: Icon(
-            _isMeetingActive ? Icons.stop_circle_outlined : Icons.play_circle_outline,
-            color: _isMeetingActive ? theme.colorScheme.error : theme.colorScheme.primary,
+        if (_isMeetingActive)
+          ListTile(
+            leading: Icon(Icons.stop_circle_outlined, color: theme.colorScheme.error),
+            title: Text('Stop Meeting', style: TextStyle(color: theme.colorScheme.error)),
+            subtitle: Text(_captureStatusLine),
+            onTap: () { Navigator.pop(context); _stopMeeting(); },
           ),
-          selectedIcon: Icon(
-            _isMeetingActive ? Icons.stop_circle : Icons.play_circle,
-            color: _isMeetingActive ? theme.colorScheme.error : theme.colorScheme.primary,
+        if (_isMeetingActive)
+          ListTile(
+            leading: Icon(Icons.swap_horiz, color: theme.colorScheme.secondary),
+            title: const Text('Change Device'),
+            subtitle: const Text('Audio bar not moving? Switch here'),
+            onTap: () {
+              Navigator.pop(context);
+              _transcriptionService.listDevices(forMic: _deviceListForMic);
+            },
           ),
-          label: Text(_isMeetingActive ? 'Stop Capture Engine' : 'Start Capture Engine'),
-        ),
-        ListTile(
-          leading: const Icon(Icons.sensors),
-          title: const Text('Capture Source (Automatic)'),
-          subtitle: Text(_captureStatusLine),
-        ),
+        else ...[
+          ListTile(
+            leading: Icon(Icons.mic, color: theme.colorScheme.primary),
+            title: const Text('Start In-Person Meeting'),
+            subtitle: const Text('Microphone capture'),
+            onTap: () { Navigator.pop(context); _startInPersonMeeting(); },
+          ),
+          ListTile(
+            leading: Icon(Icons.screen_share_outlined, color: theme.colorScheme.primary),
+            title: const Text('Start Live Meeting'),
+            subtitle: const Text('System audio / loopback capture'),
+            onTap: () { Navigator.pop(context); _startLiveMeeting(); },
+          ),
+        ],
         const Padding(padding: EdgeInsets.symmetric(horizontal: 28), child: Divider()),
-        NavigationDrawerDestination(
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reconnect IPC'),
+        ListTile(
+          leading: const Icon(Icons.refresh),
+          title: const Text('Reconnect IPC'),
+          onTap: () { if (!_isConnectedToEngine) _connectToEngine(); Navigator.pop(context); },
         ),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 28), child: Divider()),
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 28, 10),
-          child: Text('Export Results', style: theme.textTheme.labelMedium),
+          child: Text('Export Transcription', style: theme.textTheme.labelMedium),
         ),
-        NavigationDrawerDestination(
-          icon: const Icon(Icons.description_outlined),
-          label: const Text('Export as JSON'),
+        ListTile(
+          leading: const Icon(Icons.description_outlined),
+          title: const Text('Export as JSON'),
+          onTap: () { _exportSession('JSON'); Navigator.pop(context); },
         ),
-        NavigationDrawerDestination(
-          icon: const Icon(Icons.subtitles_outlined),
-          label: const Text('Export as SRT'),
+        ListTile(
+          leading: const Icon(Icons.subtitles_outlined),
+          title: const Text('Export as SRT'),
+          onTap: () { _exportSession('SRT'); Navigator.pop(context); },
+        ),
+        ListTile(
+          leading: Icon(Icons.audio_file_outlined,
+            color: _sessionWavPath != null ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant),
+          title: const Text('Export Session WAV'),
+          subtitle: Text(_sessionWavPath != null ? 'Ready' : 'Stop meeting to save WAV'),
+          onTap: () { _exportSessionWav(); Navigator.pop(context); },
         ),
       ],
-      onDestinationSelected: (index) {
-        if (index == 0) {
-          _toggleMeeting();
-          Navigator.pop(context);
-        } else if (index == 1) {
-          if (!_isConnectedToEngine) _connectToEngine();
-          Navigator.pop(context);
-        } else if (index == 2) {
-          _exportSession('JSON');
-          Navigator.pop(context);
-        } else if (index == 3) {
-          _exportSession('SRT');
-          Navigator.pop(context);
-        }
-      },
     );
   }
 
   Widget _buildTranscriptFeed(ThemeData theme) {
-    if (_transcripts.isEmpty) {
+    if (_transcripts.isEmpty && _liveTranscript.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -519,7 +699,9 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
             Icon(Icons.mic_none, size: 64, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
-              _isMeetingActive ? 'Listening for audio...' : 'Open the menu to Start Capture',
+              _isMeetingActive
+                  ? 'Listening for audio...'
+                  : 'Open the menu — Start In-Person or Live Meeting',
               style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
@@ -527,12 +709,51 @@ class _TranscriptionDashboardState extends State<TranscriptionDashboard> {
       );
     }
 
+    final itemCount = _transcripts.length + (_liveTranscript.isNotEmpty ? 1 : 0);
+
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(24.0),
-      itemCount: _transcripts.length,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
-        final block = _transcripts[index];
+        if (_liveTranscript.isNotEmpty && index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: Card(
+              elevation: 0,
+              color: theme.colorScheme.primaryContainer.withOpacity(0.35),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LIVE ASR',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _liveTranscript,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        height: 1.5,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        final transcriptIndex = _liveTranscript.isNotEmpty ? index - 1 : index;
+        final block = _transcripts[transcriptIndex];
         final displayName = _speakerTags[block.signature] ?? 'Unknown';
         
         final colorHash = block.signature.hashCode;

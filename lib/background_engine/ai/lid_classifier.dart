@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'dart:math';
 import 'package:onnxruntime/onnxruntime.dart';
 import 'package:flutter/services.dart';
+import '../../core/audio/pcm_codec.dart';
 import '../../features/transcription/domain/interfaces/onnx_processor.dart';
 
 /// Implements Language Identification using the Meta MMS-LID ONNX model.
@@ -62,22 +64,41 @@ class LidClassifier implements OnnxProcessor<Uint8List, String> {
     if (_session == null) throw Exception("LID Session not initialized");
 
     // Legacy entrypoint during migration; canonical path should call inferFromFloat32.
-    final floatList = _normalizeInt16ToFloat32(pcmBytes);
+    final floatList = PcmCodec.pcm16LeToFloat32(pcmBytes);
     return _inferFromFloat32(floatList);
   }
 
   Future<String> inferFromFloat32(Float32List floatList) async {
     if (_session == null) throw Exception("LID Session not initialized");
-    return _inferFromFloat32(floatList);
+    final predictions = await inferTopKFromFloat32(floatList, k: 1);
+    return predictions.first.language;
+  }
+
+  Future<List<LanguagePrediction>> inferTopKFromFloat32(
+    Float32List floatList, {
+    int k = 5,
+  }) async {
+    if (_session == null) throw Exception("LID Session not initialized");
+    return _inferTopKFromFloat32(floatList, k: k);
   }
 
   Future<String> _inferFromFloat32(Float32List floatList) async {
     if (_session == null) throw Exception("LID Session not initialized");
+    final predictions = await _inferTopKFromFloat32(floatList, k: 1);
+    return predictions.first.language;
+  }
+
+  Future<List<LanguagePrediction>> _inferTopKFromFloat32(
+    Float32List floatList, {
+    required int k,
+  }) async {
+    if (_session == null) throw Exception("LID Session not initialized");
     
     try {
-      final shape = [1, floatList.length];
+      final inputValues = _normalizeWav2Vec2Input(floatList);
+      final shape = [1, inputValues.length];
       final inputTensor = OrtValueTensor.createTensorWithDataList(
-        floatList, 
+        inputValues,
         shape
       );
       
@@ -85,24 +106,23 @@ class LidClassifier implements OnnxProcessor<Uint8List, String> {
       final runOptions = OrtRunOptions();
       final outputs = _session!.run(runOptions, inputs);
       
-      String detectedLang = 'eng'; 
+      List<LanguagePrediction> predictions = const [
+        LanguagePrediction(language: 'eng', score: 0),
+      ];
       
       if (outputs.isNotEmpty && outputs[0] != null) {
-          final logits = outputs[0]!.value as List<List<double>>;
-          final row = logits[0];
-          
-          // Find ArgMax
-          int maxIdx = 0;
-          double maxVal = -double.infinity;
+          final row = _firstLogitRow(outputs[0]!.value);
+          final ranked = <LanguagePrediction>[];
           for (int i = 0; i < row.length; i++) {
-            if (row[i] > maxVal) {
-              maxVal = row[i];
-              maxIdx = i;
-            }
+            ranked.add(
+              LanguagePrediction(
+                language: _idToLang[i] ?? 'LID_$i',
+                score: row[i],
+              ),
+            );
           }
-          
-          detectedLang = _idToLang[maxIdx] ?? "LID_$maxIdx";
-          
+          ranked.sort((a, b) => b.score.compareTo(a.score));
+          predictions = ranked.take(k.clamp(1, ranked.length)).toList(growable: false);
       }
 
       inputTensor.release();
@@ -111,26 +131,51 @@ class LidClassifier implements OnnxProcessor<Uint8List, String> {
         element?.release();
       }
 
-      return detectedLang;
+      return predictions;
     } catch (e) {
       print("LID Inference Error: $e");
-      return 'eng';
+      return const [LanguagePrediction(language: 'eng', score: 0)];
     }
   }
 
-  /// PRO FIX: Safe Int16 -> Float32 Normalization
-  Float32List _normalizeInt16ToFloat32(Uint8List bytes) {
-    final byteData = ByteData.view(bytes.buffer, bytes.offsetInBytes, bytes.length);
-    final count = bytes.length ~/ 2;
-    final float32 = Float32List(count);
-    
-    for (int i = 0; i < count; i++) {
-      // Explicitly read as Little Endian Int16
-      final int sample = byteData.getInt16(i * 2, Endian.little);
-      // Precise scale to [-1.0, 1.0]
-      float32[i] = sample / 32768.0;
+  Float32List _normalizeWav2Vec2Input(Float32List samples) {
+    if (samples.isEmpty) return samples;
+
+    double sum = 0;
+    for (final sample in samples) {
+      sum += sample;
     }
-    return float32;
+    final mean = sum / samples.length;
+
+    double variance = 0;
+    for (final sample in samples) {
+      final centered = sample - mean;
+      variance += centered * centered;
+    }
+    final scale = sqrt((variance / samples.length) + 1e-7);
+
+    final normalized = Float32List(samples.length);
+    for (int i = 0; i < samples.length; i++) {
+      normalized[i] = (samples[i] - mean) / scale;
+    }
+    return normalized;
+  }
+
+  List<double> _firstLogitRow(Object? value) {
+    if (value is List<List<double>>) {
+      return value.first;
+    }
+    if (value is List<List<num>>) {
+      return value.first.map((v) => v.toDouble()).toList(growable: false);
+    }
+    if (value is List && value.isNotEmpty) {
+      final first = value.first;
+      if (first is List) {
+        return first.map((v) => (v as num).toDouble()).toList(growable: false);
+      }
+      return value.map((v) => (v as num).toDouble()).toList(growable: false);
+    }
+    throw StateError('Unexpected LID logits type: ${value.runtimeType}');
   }
 
   @override
@@ -138,4 +183,17 @@ class LidClassifier implements OnnxProcessor<Uint8List, String> {
     _session?.release();
     _session = null;
   }
+}
+
+class LanguagePrediction {
+  final String language;
+  final double score;
+
+  const LanguagePrediction({
+    required this.language,
+    required this.score,
+  });
+
+  @override
+  String toString() => '$language(${score.toStringAsFixed(3)})';
 }

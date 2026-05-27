@@ -7,11 +7,12 @@ import 'package:talker_flutter/talker_flutter.dart';
 import 'package:talker/talker.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'background_engine/background_engine.dart';
+import 'background_engine/asr/meetsync_indic_helper_asr_engine.dart';
 import 'background_engine/ai/vad_gatekeeper.dart';
 import 'background_engine/ai/lid_classifier.dart';
 import 'background_engine/ai/speaker_embedder.dart';
 import 'core/database/sqlite_database_repository.dart';
-import 'features/transcription/data/strategies/windows_loopback_strategy.dart';
+import 'features/transcription/data/strategies/windows_audio_strategy.dart';
 import 'features/transcription/presentation/ui/transcription_dashboard.dart';
 
 import 'package:onnxruntime/onnxruntime.dart';
@@ -63,10 +64,11 @@ void _startBackgroundEngine(List<dynamic> args) async {
   // Talker instance for the background isolate (Pure Dart version)
   final isolateTalker = Talker();
   
-  final strategy = WindowsLoopbackStrategy();
+  final strategy = WindowsAudioStrategy();
   final vad = VadGatekeeper();
   final lid = LidClassifier();
   final embedder = SpeakerEmbedder();
+  final asr = MeetsyncIndicHelperAsrEngine();
   final database = SqliteDatabaseRepository();
   
   final engine = BackgroundAudioProcessingEngine(
@@ -74,6 +76,7 @@ void _startBackgroundEngine(List<dynamic> args) async {
     vadGatekeeper: vad,
     lidClassifier: lid,
     speakerEmbedder: embedder,
+    asrEngine: asr,
     databaseRepository: database,
     talker: isolateTalker,
   );

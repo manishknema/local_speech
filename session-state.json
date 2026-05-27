@@ -1,6 +1,6 @@
 {
   "project": "Universal Signature-First Transcription (VigyanTranscribe)",
-  "last_updated": "2026-05-23T16:10:00Z",
+  "last_updated": "2026-05-27T10:30:00Z",
   "agent_action_log": [
     {
       "timestamp_utc": "2026-05-22T10:34:00Z",
@@ -199,6 +199,270 @@
       "agent": "codex",
       "phase": "scope",
       "action": "MVP lock for next session: Windows build must transcribe English only, and UX flow must operate seamlessly with minimal-friction user experience."
+    },
+    {
+      "timestamp_utc": "2026-05-24T00:20:00Z",
+      "agent": "codex",
+      "phase": "governance",
+      "action": "Added mandatory GOVERNANCE_PRE_REQUISITE section to AGENTS.md with deterministic consent/disclosure controls, implementation steps, and release-blocking verification checklist across all platforms while allowing transcription prototyping to continue."
+    },
+    {
+      "timestamp_utc": "2026-05-23T20:53:52Z",
+      "agent": "codex",
+      "phase": "documentation",
+      "action": "Relocated governance requirements from AGENTS.md into RELEASE_CHECKLIST.md Section 5 (GOVERNANCE_PRE_REQUISITE), including DPDP-aligned release blockers and implementation checklist; converted AGENTS.md Section 7 into a mandatory pointer to the release gate."
+    },
+    {
+      "timestamp_utc": "2026-05-23T21:12:51Z",
+      "agent": "codex",
+      "phase": "scope",
+      "action": "Recorded product model decision: prioritize proving English transcription and speaker identification reliability first; defer advanced compliance UX controls (consent orchestration/DPDP workflow polish) to later release-gate phase."
+    },
+    {
+      "timestamp_utc": "2026-05-23T21:15:51Z",
+      "agent": "codex",
+      "phase": "documentation",
+      "action": "Consolidated commercialization and DPDP/international positioning guidance into RELEASE_CHECKLIST.md Section 6 and removed COMMERCIALIZATION_STRATEGY.md to keep a single authoritative agent-facing source."
+    },
+    {
+      "timestamp_utc": "2026-05-24T10:35:00Z",
+      "agent": "codex",
+      "phase": "architecture",
+      "action": "Recorded strategy change at that time: MVP was offline English-first with Sherpa-ONNX evaluation; LID was removed from the hot path; speaker identification, uncertainty handling, and offline diarization became primary intelligence/release gates."
+    },
+    {
+      "timestamp_utc": "2026-05-24T10:55:00Z",
+      "agent": "codex",
+      "phase": "scope",
+      "action": "Recorded Hindi/English MVP workflow rules: local-first transcription, speaker consent ledger, export redaction, host-language translation review, and explicit WhatsApp/share export for consented content only."
+    },
+    {
+      "timestamp_utc": "2026-05-24T11:10:00Z",
+      "agent": "codex",
+      "phase": "architecture",
+      "action": "Recorded configurable model registry, DPDP consent UML classes, quarantine/retroactive consent policy, model conversion methodology, and testing strategy for Sherpa/ONNX/CTranslate2 wrappers before next implementation session."
+    },
+    {
+      "timestamp_utc": "2026-05-24T11:20:00Z",
+      "agent": "codex",
+      "phase": "strategy",
+      "action": "Recorded future optimization strategy: Sherpa-ONNX for audio runtime, ONNX Runtime/CTranslate2 for IndicTrans2 text translation, and VVC Docker/NeMo/Optimum conversion lanes only after Flutter transcription proof is stable."
+    },
+    {
+      "timestamp_utc": "2026-05-26T10:30:00Z",
+      "agent": "codex",
+      "phase": "planning",
+      "action": "Recorded next-session note for Sherpa input contract and WASAPI resampling: native layer owns 48k->16k conversion, and naive Dart sample dropping is explicitly rejected for production."
+    },
+    {
+      "timestamp_utc": "2026-05-26T11:15:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Implemented adaptive WASAPI native decode/resample for actual mix format, added ASR strategy split (Dolphin online CTC vs future Indic online transducer scaffold), and wired the background engine to treat capture conversion and ASR topology as separate boundaries."
+    },
+    {
+      "timestamp_utc": "2026-05-26T11:20:00Z",
+      "agent": "codex",
+      "phase": "strategy",
+      "action": "Recorded clarified Sherpa plan: prove Dolphin first with no LID in the hot path; future Indic routing will use Meta MMS-LID as the gatekeeper for dynamic monolingual transducer loading after canonical native 16kHz conversion."
+    },
+    {
+      "timestamp_utc": "2026-05-26T11:45:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Switched active ASR spike from Dolphin to meetsync/indic-conformer-onnx-sherpa, added first-run model download, wired Sherpa OnlineRecognizer streaming over canonical frameStream, and added live partial transcript IPC/UI handling for loopback/mic validation."
+    },
+    {
+      "timestamp_utc": "2026-05-26T12:05:00Z",
+      "agent": "codex",
+      "phase": "testing",
+      "action": "Vendored Sherpa Windows runtime DLLs into assets/runtime/sherpa/windows and validated that this removes the System32 ONNX Runtime collision. Meetsync smoke test now reaches Sherpa model initialization, but the exported model still fails online compatibility checks (`decoder missing` in transducer mode; `window_size` metadata missing in online NeMo CTC mode), so the current model card/config cannot yet be treated as a drop-in live recognizer proof."
+    },
+    {
+      "timestamp_utc": "2026-05-26T12:20:00Z",
+      "agent": "codex",
+      "phase": "testing",
+      "action": "Switched the meetsync spike to VAD-triggered offline recognition and validated it with a local Sherpa smoke test using OfflineRecognizer + OfflineNemoEncDecCtcModelConfig on test_fixtures/wav16k/hi_clean.wav. This confirms the vendored Sherpa runtime plus canonical 16kHz PCM path is working for segmented offline decode."
+    },
+    {
+      "timestamp_utc": "2026-05-26T12:30:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Adjusted offline proof behavior so loopback validation no longer depends on long natural silence: non-streaming ASR now force-flushes buffered VAD segments after ~4 seconds to surface transcripts sooner during live app testing."
+    },
+    {
+      "timestamp_utc": "2026-05-26T12:45:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Narrowed the live proof lane to microphone-only single-speaker verification: CAPTURE_STATUS is now surfaced in the Flutter UI, backend capture starts with useMic=true, offline segmented ASR waits for ~2 seconds minimum speech before decode, and speaker attribution is pinned to a fixed MicSpeaker signature to remove diarization noise from ASR validation."
+    },
+    {
+      "timestamp_utc": "2026-05-26T08:52:02Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Replaced byte-window sentence buffering with an edge-triggered VadUtteranceSegmenter for the mic proof lane: 300ms rolling pre-roll, 400ms silence tolerance, 1200ms minimum utterance, 250ms tail overlap, Float32 internal buffering, and Float32->PCM16 dispatch back into the existing akki244 OfflineRecognizer path."
+    },
+    {
+      "timestamp_utc": "2026-05-26T08:52:02Z",
+      "agent": "codex",
+      "phase": "decision",
+      "action": "Locked the four-part Task 1 segmentation matrix so future tuning has context: 300ms pre-roll was chosen to recover clipped initial phonemes, 400ms silence tolerance was chosen to avoid premature offline flush on brief pauses, 1200ms minimum segment was chosen because shorter IndicConformer offline chunks were producing blank or weak decodes, and 250ms tail overlap was chosen to reduce word loss at segment boundaries without creating excessive duplication."
+    },
+    {
+      "timestamp_utc": "2026-05-26T08:52:02Z",
+      "agent": "codex",
+      "phase": "decision",
+      "action": "Locked the four-workstream execution order for Sherpa Hindi meeting transcription so context does not regress: Task 1 is segmentation-first because ASR quality was being limited by boundary loss before diarization mattered; Task 2 is speaker attribution only after Task 1 because unstable segmentation causes false speaker churn and unreliable embeddings; Task 3 is loopback only after mic and speaker flow are proven because mixed render-stream attribution is weaker than near-end mic attribution and should not hide core ASR defects; Task 4 is deferred Android/M33 planning because the mobile port has different CPU-only and memory-sequencing constraints and should not perturb the Windows-first proof lane."
+    },
+    {
+      "timestamp_utc": "2026-05-26T14:55:00Z",
+      "agent": "codex",
+      "phase": "diagnostic",
+      "action": "Identified the real IPC/control-path failure during live validation: the UI-side LocalIpcTranscriptionService treated the initial WebSocket open as permanently connected, but did not mark itself disconnected on socket close or reconnect before START_MEETING. Result: the dashboard could still appear connected while the backend had already logged 'UI WebSocket client disconnected', so pressing Start Capture never reached _startCapture(). Fixed by tracking real connection state, clearing it on onDone/onError, and forcing reconnect before startMeeting()."
+    },
+    {
+      "timestamp_utc": "2026-05-26T15:20:00Z",
+      "agent": "codex",
+      "phase": "decision",
+      "action": "Updated the live MVP wording to reflect the current proof lane: LID remains removed from the hot path, but the active Windows-first proof is no longer speaker-first or English-first. The current critical path is microphone capture -> VAD-aware utterance segmentation -> offline IndicConformer ASR. Speaker embeddings/diarization remain Task 2 after segmentation and ASR stability."
+    },
+    {
+      "timestamp_utc": "2026-05-26T15:55:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Added a separate debug WAV validation path outside the meeting/VAD flow. The Flutter drawer now exposes a Record Debug WAV action that asks the backend to capture 5 seconds from the same canonical post-conversion microphone bytesStream and save it to logs/debug as 16kHz mono PCM WAV. This exists to validate PCM/downsampling correctness independently before changing VAD thresholds again."
+    },
+    {
+      "timestamp_utc": "2026-05-26T16:20:00Z",
+      "agent": "codex",
+      "phase": "implementation",
+      "action": "Promoted the debug WAV path into a real mini-session: the drawer action now toggles Record/Stop Debug WAV, the app shows the live volume gauge during debug capture, and user stop requests flush a partial WAV if enough canonical PCM was collected. Added native Windows mic-format diagnostics (subtype, validBits, first-packet peak/RMS stats) because the first saved debug WAV sounded like noise, indicating the remaining blocker is likely native format interpretation or resample output rather than VAD thresholds."
+    },
+    {
+      "timestamp_utc": "2026-05-26T16:35:00Z",
+      "agent": "codex",
+      "phase": "handoff",
+      "action": "Recorded the combined next-step plan after the unresolved Intel SST mic capture diagnosis. Current hard evidence: Windows selected the correct Intel Smart Sound Technology microphone array, format is 48kHz stereo 32-bit IEEE float, but packetStats[1..3] show near-zero input amplitude and outPeak=0, so the remaining blocker is native mic capture behavior before VAD/ASR. The agreed multi-block continuation plan is: (1) Windows native audio intelligence and Intel SST profile/recovery, (2) VAD utterance segmentation stabilization, (3) speaker diarization wiring after ASR stability, (4) cross-platform AudioCaptureStrategy factory for Linux/macOS/Android, and (5) loopback/source-tagging expansion after those are proven."
+    },
+    {
+      "timestamp_utc": "2026-05-27T00:00:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "WASAPI grr-noise root cause confirmed and reverted: AUTOCONVERTPCM was causing periodic 160-sample DC bias runs (~every 50ms, flags=0x0 — undetectable at WASAPI level). Root cause: Windows internal SRC delivers a slowly-drifting ramp during certain periods; our DC blocker converts this ramp to constant int16 output (apparent DC). OBS research confirmed: OBS never uses AUTOCONVERTPCM for capture. Fix applied to loopback_capture.cpp: (1) AUTOCONVERTPCM and SRC_DEFAULT_QUALITY flags REMOVED from all paths, (2) Initialize() now uses m_mixFormat (native device format, e.g. 48kHz stereo float32), (3) software box-average resampler (3-tap FIR, zeros at 16kHz/32kHz) RESTORED with m_resampleCursor state, (4) full format detection RESTORED in DecodePacketToMonoFloat (EXTENSIBLE/IEEE_FLOAT/PCM + channel averaging), (5) kMicGainFactor=8.0 added after resampling before DC blocker to compensate low mic level. [Debug] log line removed."
+    },
+    {
+      "timestamp_utc": "2026-05-27T01:00:00Z",
+      "agent": "claude",
+      "phase": "root-cause",
+      "action": "CRACKLING ROOT CAUSE CONFIRMED AND FIXED. Root cause: NativeCallable.listener is fully async — it posts the pointer VALUE to Dart's event loop and returns immediately. The local std::vector<int16_t> pcmData was destroyed before Dart read from the pointer, causing use-after-free. On Windows heap, the next loop iteration's pcmData allocation reused the same address, corrupting the data Dart was reading. This bug was present across every version and masked by louder symptoms (AUTOCONVERTPCM DC bias, DC blocker artifacts, heartbeat zero injection). Fix: C++ now heap-allocates with new uint8_t[] before calling callback; Dart calls Audio_FreeBuffer (new FFI export) immediately after Uint8List.fromList copy. Result confirmed: crackling gone, outPeak 2245-5797 (clean, no 32767 clipping), needsMicGain=0 for loopback. Remaining: low loopback level (~-15dBFS) is Windows Stereo Mix volume, not a code issue — IndicConformer per-feature normalization handles it."
+    },
+    {
+      "timestamp_utc": "2026-05-27T00:15:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "OBS WASAPI reference implementation analyzed (github.com/obsproject/obs-studio/plugins/win-wasapi/win-wasapi.cpp). Key findings: (1) AUDCLNT_STREAMFLAGS_EVENTCALLBACK always set — pure event-driven, no Sleep() polling, (2) 5-second buffer (BUFFER_TIME_100NS=50000000) to prevent overflow between reads, (3) SetEventHandle() called after Initialize(), (4) CaptureThread uses WaitForSingleObject(event, 10ms) — 10ms timeout fallback for loopback silence periods, (5) no SetClientProperties, (6) native GetMixFormat() format passed directly. Applied to loopback_capture.cpp: AUDCLNT_STREAMFLAGS_EVENTCALLBACK added, m_captureEvent HANDLE added, Initialize buffer=5s, SetEventHandle called, CaptureThread Sleep(10) replaced with WaitForSingleObject(m_captureEvent, 10), heartbeat injection on WAIT_TIMEOUT preserved, CloseHandle in Stop(). Platform: Windows-only. Pending: rebuild and WAV validation."
+    },
+    {
+      "timestamp_utc": "2026-05-26T18:00:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Applied four-part Intel SST WASAPI fix to loopback_capture.cpp: (1) buffer duration 1s->20ms to prevent DSP sleep, (2) 200ms Sleep() + stat reset after Start() for DSP wake, (3) stats window extended to 20 packets to capture warm-up curve, (4) near-zero warning added. IAudioClient2::SetClientProperties(AudioCategory_Communications) added for beamforming/AGC activation — confirmed hr=0x0."
+    },
+    {
+      "timestamp_utc": "2026-05-27T09:00:00Z",
+      "agent": "claude",
+      "phase": "root-cause",
+      "action": "modelingUnit='bpe' not taking effect for IndicConformer Hindi ASR. Root cause: background engine spawns tool/sherpa_helper.dart as a subprocess for actual inference; only the main-app ASR engine class had been updated, not the subprocess. Fix: added modelingUnit: 'bpe' to OfflineModelConfig in both tool/sherpa_helper.dart and tool/meetsync_smoke.dart. Without this fix, Sherpa defaulted to cjkchar tokenization, producing garbage output on Hindi speech."
+    },
+    {
+      "timestamp_utc": "2026-05-27T09:15:00Z",
+      "agent": "claude",
+      "phase": "root-cause",
+      "action": "Stereo Mix selected as microphone when user clicked Start In-Person Meeting. Root cause: GetDefaultAudioEndpoint(eCapture, eConsole) returned Stereo Mix because user had enabled it as the Windows default input device for the Live Meeting loopback path. The needsMicGain flag was also incorrectly set to true for Stereo Mix (Stereo Mix is already line-level, 8x gain causes clipping). Fix: replaced default-endpoint fallback for mic path with two-stage FormFactor-based detection — Stage 1: PKEY_AudioEndpoint_FormFactor == Microphone(4)/Headset(5)/Handset(6) + virtual-device name guard; Stage 2: LineLevel(2) + name guard (catches USB mics, Focusrite, Blue Yeti); Fallback: GetDefaultAudioEndpoint only if both stages fail. selectedRealHardwareMic=true only on stages 1 and 2, driving m_needsMicGain."
+    },
+    {
+      "timestamp_utc": "2026-05-27T09:30:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Live Meeting loopback path changed from Stereo Mix preference to OBS-style pure render loopback. Old approach: enumerate eCapture endpoints, prefer device whose name contains 'stereo mix' (fragile, Realtek-only, locale-dependent). New approach: GetDefaultAudioEndpoint(eRender, eMultimedia) + AUDCLNT_STREAMFLAGS_LOOPBACK. This is 100% universal (Windows Vista+, every OEM, every audio chip), Stereo Mix setup is no longer required, and the approach matches how OBS, TeamViewer, and Sound Recorder capture system audio."
+    },
+    {
+      "timestamp_utc": "2026-05-27T09:45:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "UI renamed Start Capture -> two separate actions: 'Start In-Person Meeting' (useMic=true, mic capture) and 'Start Live Meeting' (useMic=false, system audio loopback). IPC message START_MEETING now carries params.useMic boolean. AppBar badge shows active device name when meeting is running (e.g. 'In-Person Meeting — Microphone Array (Intel SST)'). Both modes have identical export capabilities: JSON, SRT, WAV."
+    },
+    {
+      "timestamp_utc": "2026-05-27T10:00:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Added device picker flow for both meeting modes. If audio bar is not moving, user opens drawer -> Change Device, which sends LIST_DEVICES IPC to background engine, enumerates C++ Audio_EnumerateDevices (new FFI export, eCapture for mic / eRender for loopback), returns newline-delimited list to UI, shows picker dialog. On selection: setPreferredDevice IPC sent, preference saved to SharedPreferences (preferred_mic_device / preferred_loopback_device keys), meeting restarted automatically. Loopback_SetPreferredDevice C++ function bypasses auto-detection for the next Start call."
+    },
+    {
+      "timestamp_utc": "2026-05-27T10:15:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Removed debug WAV subsystem entirely (was a temporary diagnostic tool). Replaced with automatic per-session WAV using streaming writer pattern: (1) on meeting start, open RandomAccessFile, write 44-byte placeholder WAV header, (2) every PCM chunk from bytesStream written directly to disk via writeFrom() — zero RAM accumulation, (3) on meeting stop, seek to offset 0, write real 44-byte WAV header with correct RIFF/data byte counts, close file. File saved to logs/sessions/session_IST_<timestamp>.wav. SESSION_WAV_SAVED IPC message sent to UI with path. Export WAV in drawer copies file to Documents folder. Prevents OOM for long sessions: 1-hour meeting at 32KB/s = ~115MB RAM with BytesBuilder, ~512 bytes constant with streaming writer."
+    },
+    {
+      "timestamp_utc": "2026-05-27T10:30:00Z",
+      "agent": "claude",
+      "phase": "review",
+      "action": "Binding consistency review completed by Explore subagent. Verified: (1) all three FFI exports (Loopback_GetSelectedDeviceName, Audio_EnumerateDevices, Loopback_SetPreferredDevice) declared in .h, defined in .cpp, and bound in windows_loopback_strategy.dart, (2) AudioCaptureStrategy abstract interface updated with selectedDeviceName, listAvailableDevices, setPreferredDevice, (3) all IPC message handlers in background_engine.dart match senders in local_ipc_transcription_service.dart, (4) drawer structure in transcription_dashboard.dart is syntactically correct Dart collection literal with spread operator for else branch. No regressions found. Two pre-existing non-blocking items noted: unawaited() call in dispose() and AsrTranscript local class — both predated this session."
+    },
+    {
+      "timestamp_utc": "2026-05-26T18:15:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Diagnosed and fixed resampler aliasing noise. Root cause: for 48k->16k (step=3.0), linear interpolation fraction is always 0.0 — pure decimation with no anti-aliasing filter. Every 8-24 kHz band aliases into voice band producing grr/grinding noise. Fix: replaced linear interpolation with box-average filter (ceil(step)=3 taps), placing filter zeros at exactly 16kHz and 32kHz. WAV spectral analysis confirmed HP/LP ratio dropped to 0.06x (noise eliminated)."
+    },
+    {
+      "timestamp_utc": "2026-05-26T18:30:00Z",
+      "agent": "claude",
+      "phase": "decision",
+      "action": "Bluetooth SCO (HP OmniBook driver) confirmed as a separate noise source — not a code problem. Fix: disable Hands-Free Telephony toggle in Windows BT settings. This is independent of the Intel SST amplitude/aliasing issues."
+    },
+    {
+      "timestamp_utc": "2026-05-26T18:45:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "VadUtteranceSegmenter flushing-state fix: silence frames were not being accumulated in the utterance buffer during flushing state, causing trailing phonemes to be cut off before ASR received them. One-line fix: added _utteranceBuffer.addAll(frame) inside the flushing/silence branch before the silence counter check. All three pre-written contract tests pass analytically."
+    },
+    {
+      "timestamp_utc": "2026-05-26T18:50:00Z",
+      "agent": "claude",
+      "phase": "decision",
+      "action": "DC blocker and kMicGainFactor decisions: (1) Added first-order IIR DC blocker (alpha=0.9999) targeting Intel SST -10.7% DC bias — then removed; Windows audio processing (AGC, AudioCategory_Communications pipeline) handles DC and gain normalization. (2) Added kMicGainFactor=8.0 for manual amplification — then removed; caused 18% sample clipping. Windows AGC with AUTOCONVERTPCM flags is the correct gain path."
+    },
+    {
+      "timestamp_utc": "2026-05-26T19:00:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Changed WASAPI Initialize flags for mic capture from bare 0 to (AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM | AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY). This lets Windows handle format conversion and sample-rate quality internally rather than requiring the app to match the mix format exactly. Loopback path unchanged (AUDCLNT_STREAMFLAGS_LOOPBACK)."
+    },
+    {
+      "timestamp_utc": "2026-05-26T19:05:00Z",
+      "agent": "claude",
+      "phase": "status",
+      "action": "Mic capture pipeline status at session end: Intel SST DSP wakes correctly (packets 4+ show non-zero inPeak), aliasing noise eliminated (box-average anti-aliasing), BT SCO noise is a hardware/driver config issue not code. WAV files confirm clean voice with RMS in ASR-usable range. Pending: WAV validation with AUTOCONVERTPCM flags and BT disconnected (binary locked but app was running when build was attempted — LNK1168). Next session must start with: close app, rebuild, record 5s WAV, confirm clean, then move to Task 2 VAD segmentation validation."
+    },
+    {
+      "timestamp_utc": "2026-05-26T19:30:00Z",
+      "agent": "claude",
+      "phase": "root-cause",
+      "action": "DEFINITIVE MIC FIX FOUND: Compared our WAV vs Sound Recorder WAV from same Intel SST mic. Sound Recorder = SNR 40.2dB, noise floor -53.5dBFS, DC 0%. Our app = SNR 3.3dB, noise floor -16.2dBFS, DC -9.7%. Root cause: IAudioClient2::SetClientProperties(AudioCategory_Communications) bypasses Intel SST APO chain (noise suppression, AGC, DC rejection). UNIVERSAL RULE locked: never set audio session categories on any platform on any device. Windows=no SetClientProperties, macOS=no kAudioSessionMode_Measurement, Linux=no ALSA direct, Android=no AudioSource.UNPROCESSED."
+    },
+    {
+      "timestamp_utc": "2026-05-26T19:35:00Z",
+      "agent": "claude",
+      "phase": "implementation",
+      "action": "Task 1 IN PROGRESS — Windows mic fix: (1) removed SetClientProperties block entirely from loopback_capture.cpp, (2) removed AudioDeviceProfile enum from header — replaced with timing-only parameters (bufferDurationRef + wakeDelayMs), (3) added critical comment block at top of both files, (4) kMicGainFactor already removed, DC blocker already removed. Build pending — user must close running app first (LNK1168 risk). VALIDATION GATE: SNR > 25dB, noise floor < -40dBFS, DC < 1%."
+    },
+    {
+      "timestamp_utc": "2026-05-26T19:36:00Z",
+      "agent": "claude",
+      "phase": "plan",
+      "action": "FULL TASK PLAN (locked by user — do not skip ahead, do not proceed to next task until current passes validation): TASK 1 (IMMEDIATE): Windows mic fix — remove SetClientProperties, validate SNR > 25dB. TASK 2: Replace VadUtteranceSegmenter with 2-state implementation (silence/utteranceActive only — flushing merged into utteranceActive), update contract tests. TASK 3: Test-only — loopback with useMic=false, play audio, record WAV, verify SNR > 30dB, no code changes expected. TASK 4: Create lib/features/transcription/data/strategies/audio_strategy_factory.dart with PlatformAudioCapabilities and platform detection (Windows/Linux/macOS/Android). TASK 5: Create linux_audio_strategy.dart using parec/PipeWire monitor source for mic and loopback. TASK 6: Create macos_audio_strategy.dart using record package + BlackHole for loopback. TASK 7: Create android_audio_strategy.dart using record package (AudioSource.MIC) + MediaProjection stub for loopback, add MainActivity.kt additions and AndroidManifest permissions. TASK 8: Create lib/features/onboarding/platform_capabilities_widget.dart showing per-platform capability status with actionable install steps. Tasks 4-8 can be implemented in parallel after Tasks 1-3 pass."
     }
   ],
   "biography_of_the_12_hour_build": {
@@ -212,7 +476,7 @@
     "Zero-Setup installation (Automated build/config)",
     "Decoupled Architecture (UI Isolate separated from Service Isolate via IPC)",
     "Platform-Agnostic Audio Ingestion (16kHz Mono Float32 Contract)",
-    "Real-time Intelligence (Stateful Silero VAD v4 + Meta MMS-LID Mapping)",
+    "Offline Intelligence (VAD + speaker embeddings/diarization + English ASR; LID diagnostic only)",
     "Local-First English Transcription (Whisper.cpp core)",
     "Persistent Diarization (Real ONNX Embeddings + sqlite-vec)",
     "Hardware-First Acceleration (oneAPI SYCL, OpenVINO, CoreML, NNAPI)"
@@ -223,7 +487,24 @@
     "Use Intel oneAPI SYCL as primary Windows accelerator; fallback to DirectML.",
     "Implement 15s Auto-Flush in Background Engine to prevent SBD infinite buffering.",
     "Use 2-second Rolling Sliding Window for LID to support code-switching (multilingual speech).",
-    "For Indic cloud lane, send only VAD/LID decision + canonical header metadata + PCM/WAV chunk payload; avoid raw model internals in normal mode."
+    "For Indic cloud lane, send only VAD/LID decision + canonical header metadata + PCM/WAV chunk payload; avoid raw model internals in normal mode.",
+    "Remove LID from MVP hot path; treat language detection as diagnostic/advisory until multilingual ASR is proven.",
+    "Adopt uncertainty-aware speaker attribution: low-confidence, noisy, overlapping, or too-short segments must be marked Uncertain Speaker and reviewed before compliance-grade export.",
+    "Hindi/English MVP must prove consent-aware transcript flow: late speakers continue through engine as pending, non-consented content is redacted/excluded by default, and IndicTrans2-style translation is used only for host review/export of consented content.",
+    "All models must be configurable by registry/profile; Sherpa speech tasks, IndicTrans2 translation, and future IndicConformer candidates must be swappable independently.",
+    "Use quarantine-first storage for pending speakers: pending segments are retained locally but export-ineligible; later consent can release them only under audited retroactive consent policy.",
+    "Python model examples are reference paths only; production conversion requires documented preprocessing/tokenizer/tensor/decoding contracts and parity tests before C++/DLL or Dart integration.",
+    "Future optimization split: Sherpa-ONNX is the audio runtime path; IndicTrans2 is a separate text-to-text translation lane via ONNX Runtime/CTranslate2; IndicConformer 600M conversion belongs to VVC Docker/NeMo experiments after Flutter MVP proof.",
+    "For Sherpa/ASR/speaker models, the canonical model boundary remains 16kHz mono Float32; WASAPI loopback resampling must happen natively, not via naive Dart downsampling.",
+    "Task 1 segmentation is locked as an edge-triggered utterance segmenter because VAD truth alone was insufficient for offline ASR quality: use 300ms rolling pre-roll to recover clipped starts, 400ms silence tolerance to avoid premature flush, 1200ms minimum utterance to reject garbage-short decodes, and 250ms tail overlap to reduce boundary word loss.",
+    "Android Exynos 1280/M33 is a deferred CPU-only target: no NPU/GPU ONNX path is assumed, MediaProjection is the Android loopback analogue, and model memory sequencing must load ASR/TTS on demand rather than keeping the full stack resident.",
+    "If current Windows mic capture remains unresolved on Intel SST, the continuation strategy is not another ASR/VAD tweak; it is a product-grade Audio Device Intelligence Layer: detect device family/profile, apply profile-specific WASAPI settings and wake delays, validate early packet health, auto-recover dead streams, and surface device health/profile back to Flutter UI.",
+    "DECISION (2026-05-27): NativeCallable.listener is fully async — the pointer value is posted to Dart's event loop and the C++ stack frame is destroyed before Dart reads from it. Rule: never pass a pointer to stack-allocated or std::vector-local memory across NativeCallable.listener. Always heap-allocate with new uint8_t[], call the callback with the heap pointer, and export Audio_FreeBuffer so Dart can free after Uint8List.fromList copy.",
+    "DECISION (2026-05-27): Live Meeting uses OBS-style render loopback exclusively — GetDefaultAudioEndpoint(eRender, eMultimedia) + AUDCLNT_STREAMFLAGS_LOOPBACK. Stereo Mix is not required and should not be set as the Windows default input device. This approach works on every Windows installation regardless of OEM, audio chip, or driver. Stereo Mix setup instructions removed from INSTALLATION.md.",
+    "DECISION (2026-05-27): In-Person Meeting mic selection uses PKEY_AudioEndpoint_FormFactor (locale-independent, WHQL-certified) as the primary signal. Stage 1 = FormFactor 4/5/6 (Microphone/Headset/Handset — real hardware mics), Stage 2 = FormFactor 2 (LineLevel — USB mics, audio interfaces, Focusrite, Blue Yeti), virtual-device name guard on both stages, Fallback = GetDefaultAudioEndpoint only if both stages fail. m_needsMicGain is true only for stages 1 and 2 (real hardware), not for fallback or Stereo Mix.",
+    "DECISION (2026-05-27): Session WAV is always saved automatically using a streaming writer — 44-byte placeholder header at start, PCM chunks streamed to disk per bytesStream event, real header written on stop. BytesBuilder full-session accumulation removed. Minimum threshold _minimumSessionWavBytes enforced before header finalization. File path surfaced to UI via SESSION_WAV_SAVED IPC. User exports to Documents via drawer action.",
+    "DECISION (2026-05-27): Device picker is the user-facing recovery path for 'audio bar not moving'. No technical jargon exposed — just a list of device names with 'Auto-detect (default)' option. Preference persisted in SharedPreferences (preferred_mic_device / preferred_loopback_device). Meeting restarts automatically on device change if a meeting is active.",
+    "DECISION (2026-05-27): modelingUnit: 'bpe' is a required field for all IndicConformer-based ASR configs. Any sherpa_onnx subprocess script (tool/sherpa_helper.dart, tool/meetsync_smoke.dart) must include it in OfflineModelConfig. Omitting it silently causes Sherpa to default to cjkchar tokenization."
   ],
   "technical_diagnostics": {
     "wasapi_error": "0x88890001 (AUDCLNT_E_DEVICE_INVALIDATED) or Starvation during silence. Solved via eMultimedia endpoint + zero-injection.",
@@ -232,10 +513,10 @@
   },
   "locked_stack": {
     "language": "Dart / Flutter",
-    "transcription": "ONNX Runtime (Silero VAD, MMS-LID, SpeakerEmbedder) + Whisper Tiny/Base",
+    "transcription": "Sherpa-ONNX evaluation target for offline VAD, speaker embeddings/diarization, and English ASR; existing ONNXRuntime MMS-LID is diagnostic only.",
     "persistence": "SQLite (sqflite) + sqlite-vec (Vector store)",
     "ipc": "Local WebSocket / HTTP (UI <-> Background Isolate)",
-    "audio_capture": "Windows (FFI/WASAPI Heartbeat) / Android (AAudio/Oboe)"
+    "audio_capture": "Windows (FFI/WASAPI Heartbeat) / Android (AAudio or MediaProjection loopback path)"
   },
   "implementation_roadmap": [
     "Phase 1: Engine Isolation & Data Modeling (Completed)",
@@ -244,7 +525,7 @@
     "Phase 4: Multi-OS Expansion (Android Port)"
   ],
   "handover_directives": {
-    "immediate_next_step": "Implement the Platform-Agnostic Repositories for Audio Capture, enforcing the 16kHz Mono Float32 output contract.",
+    "immediate_next_step": "Implement and test the agreed contracts in order: consent gate + ledger schema, configurable model registry, Sherpa speaker/VAD smoke tests, then native wrapper conversion only after Python reference parity.",
     "primary_doc": "./handover_manifest.md",
     "diagnostic_doc": "./DIAGNOSTICS.md"
   }

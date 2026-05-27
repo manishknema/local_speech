@@ -19,7 +19,8 @@ abstract class VigyanTranscriptionService {
   Future<void> connect();
 
   /// Starts the audio capture and transcription process.
-  Future<void> startMeeting();
+  /// [useMic] true = in-person meeting (microphone), false = live meeting (loopback).
+  Future<void> startMeeting({bool useMic = true});
 
   /// Stops the active meeting.
   Future<void> stopMeeting();

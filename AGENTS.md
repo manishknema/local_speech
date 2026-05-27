@@ -48,6 +48,14 @@ Every implementation session MUST update relevant docs before handover:
 3. Android remains a separate runtime environment; fixture generation is shared and platform-agnostic.
 4. HITL is last-mile validation only after automated baseline is green.
 
+## 7. Governance Release Gate (Mandatory)
+
+Governance implementation details and blocking release checks are now centralized in:
+
+- **[RELEASE_CHECKLIST.md](./RELEASE_CHECKLIST.md)** under `Section 5: GOVERNANCE_PRE_REQUISITE`
+
+All agents must treat that section as mandatory for public release, paid rollout, and enterprise onboarding across all platforms.
+
 ---
 
 _Transferred to Sonnet/Codex for Phase 2 Implementation_

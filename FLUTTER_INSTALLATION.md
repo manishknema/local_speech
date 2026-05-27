@@ -14,6 +14,21 @@ Here’s the **full unified installation + CI pipeline guide** that covers Windo
 - Android Studio (SDK + emulator)
 - Chrome (for web builds)
 
+### Windows — Audio Setup (Required)
+
+The app captures system audio via two paths: **microphone** (Media Foundation) and **loopback** (Stereo Mix). Stereo Mix must be manually enabled before loopback capture will work.
+
+**Enable Stereo Mix:**
+1. Right-click the speaker icon in the system tray → **Sounds**
+2. Go to the **Recording** tab
+3. Right-click anywhere in the device list → **Show Disabled Devices**
+4. Right-click **Stereo Mix** → **Enable**
+5. Click **OK**
+
+Once enabled, the app will automatically detect it and use it for loopback capture via Media Foundation (clean path, full APO chain active).
+
+> **Note:** If Stereo Mix does not appear even after showing disabled devices, your audio driver does not expose it. The app will fall back to raw WASAPI loopback automatically, but audio quality may be lower.
+
 ### macOS
 
 - macOS 12 or newer

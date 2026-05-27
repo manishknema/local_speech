@@ -35,7 +35,53 @@ To compile this project from source, you must set up the Flutter SDK and the pla
     *   Windows: Run `fix_flutter.bat <path_to_flutter>`
     *   macOS/Linux: Run `./fix_flutter.sh <path_to_flutter>`
 
-### 2. Windows-Specific Toolchain (WASAPI & FFI)
+### 2. Windows Audio Setup (One-time, before first run)
+
+#### Live Meeting — System Audio Capture (no setup required)
+**Live Meeting** captures everything playing through your speakers or headphones — meetings, videos, music — using Windows WASAPI render loopback. This works on every Windows PC regardless of audio chip or driver brand.
+
+**No special configuration is needed.** The app finds your default playback device and taps the render stream directly. If you have multiple playback devices (e.g., speakers and headphones), the app follows whichever is set as the Windows default output.
+
+> **Note:** You do **not** need to enable Stereo Mix, and you should **not** set Stereo Mix as your default recording device. Setting Stereo Mix as default can interfere with microphone detection for In-Person Meetings.
+
+---
+
+#### In-Person Meeting — Microphone Capture
+**In-Person Meeting** captures your physical microphone. The app auto-detects the best real hardware microphone on your system using these rules (in order):
+
+| Priority | Device Type | Examples |
+|---|---|---|
+| **1 (preferred)** | Built-in mic array (FormFactor: Microphone/Headset) | Intel SST Mic Array, laptop built-in mic |
+| **2 (fallback)** | USB audio interface (FormFactor: LineLevel) | Focusrite Scarlett, Blue Yeti, HyperX |
+| **3 (last resort)** | Windows default recording device | Whatever Windows has selected |
+
+Virtual devices (Stereo Mix, VoiceMeeter, Virtual Cable) are filtered out automatically at all priority levels.
+
+##### Microphone Privacy (required — one-time)
+Windows Settings → **Privacy & security** → **Microphone** → turn on **"Let desktop apps access your microphone"**
+
+---
+
+#### Audio Bar Not Moving? Change Device
+If the audio bar in the app header shows no signal after starting a meeting:
+
+1. Open the side menu (☰ icon top-left)
+2. Tap **Change Device**
+3. Select a different device from the list
+4. The app restarts audio capture automatically and saves your preference
+
+Your device preference is remembered for future sessions. To go back to auto-detect, open Change Device and select **Auto-detect (default)**.
+
+---
+
+#### Session Recording
+Both meeting modes automatically record the session audio to `logs/sessions/session_IST_<timestamp>.wav` (16 kHz, mono, 16-bit PCM) while the meeting runs. The file is finalized when you stop the meeting.
+
+To export the recording to your Documents folder: open the side menu → **Export Session WAV**.
+
+---
+
+### 3. Windows-Specific Toolchain (WASAPI & FFI)
 Because we use native C++ to capture system loopback audio via WASAPI, you **must** have the Microsoft C++ build tools installed.
 *   **Visual Studio 2022 or 2026** (Community edition is fine).
 *   During installation, select the **Desktop development with C++** workload.
@@ -72,8 +118,16 @@ flutter build apk --release
 
 ## 🧠 Model Assets (Post-Install)
 
-The application relies on several AI models to function offline. In a production build, these are bundled into the application assets.
+The application relies on several AI models to function offline. Place them in `assets/models/` before building.
 
-1.  **Silero VAD (ONNX):** ~2 MB. Used for silence stripping and 3-second chunking.
-2.  **Meta MMS-LID (ONNX INT8):** ~15 MB. Used for instantaneous language routing.
-3.  **Gemma 2B (INT4 Quantized):** ~1.5 GB. Used by MediaPipe for Local Action Execution (Intent Parsing). *(Only loaded if the device meets the 6GB+ RAM requirement).*
+| File | Size | Purpose |
+|---|---|---|
+| `silero_vad.onnx` | ~2 MB | Voice Activity Detection — segments speech from silence |
+| `mms_lid.onnx` | ~15 MB | Language ID — routes Hindi vs English audio (diagnostic, not in hot path) |
+| `speaker_embed.onnx` | ~10 MB | Speaker embeddings for participant identification |
+| IndicConformer model files | ~300 MB | Offline Hindi/English ASR via Sherpa-ONNX |
+
+> **IndicConformer note:** The Sherpa-ONNX runtime DLLs are vendored in `assets/runtime/sherpa/windows/`. The model itself must be downloaded separately — see `scripts/ensure_models_assets.py` for the automated download script.
+
+### Sherpa Runtime (Windows)
+The Sherpa DLLs (`sherpa-onnx.dll`, `onnxruntime.dll`) are copied to the build output directory automatically by the CMake configuration. No manual DLL placement is needed.
